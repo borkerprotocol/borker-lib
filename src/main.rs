@@ -20,9 +20,9 @@ fn main() -> Result<(), failure::Error> {
         Some("restore_seed") => {
             match cmd.get(2..14) {
                 Some(a) => {
-                    let mut arr = [""; 12];
+                    let mut arr: [String; 12] = Default::default();
                     for (out_word, in_word) in arr.iter_mut().zip(a) {
-                        *out_word = in_word;
+                        *out_word = in_word.clone();
                     }
                     let ent = lib::restore_seed(arr)?;
                     eprintln!("{:?}", ent);

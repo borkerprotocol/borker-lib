@@ -3,3 +3,4 @@
 /.wallet
 /bin
 /pkg
+/wasm-pack.log

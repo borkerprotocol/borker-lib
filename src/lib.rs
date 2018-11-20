@@ -30,6 +30,7 @@ pub fn new_raw_seed() -> Box<[u8]> {
     Box::new(raw_seed)
 }
 
+#[wasm_bindgen]
 pub fn words_from_raw_seed(raw_seed: &[u8]) -> Vec<JsValue> {
     let mut a: [u8; 16] = [0; 16];
     a.copy_from_slice(&raw_seed[0..16]);

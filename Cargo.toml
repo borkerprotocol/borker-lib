@@ -6,7 +6,7 @@ edition = "2018"
 
 [lib]
 name = "borker_rs"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 
 [[bin]]
@@ -20,7 +20,7 @@ default-features = ["console_error_panic_hook", "wee_alloc"]
 base58 = "0.1.0"
 failure = "0.1.3"
 libsecp256k1 = "0.1.14"
-rand = { version = "0.6", features = ["stdweb"] }
+rand = { version = "0.6", features = ["wasm-bindgen"] }
 ripemd160 = "0.8.0"
 sha2 = "0.8.0"
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
