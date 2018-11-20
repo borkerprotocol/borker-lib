@@ -5,12 +5,16 @@ authors = ["Aiden McClelland <gagglehoof@gmail.com>"]
 edition = "2018"
 
 [lib]
-name = "borker_lib"
+name = "borker_rs"
+crate-type = ["cdylib"]
 path = "src/lib.rs"
 
 [[bin]]
 name = "borker_cli"
 path = "src/main.rs"
+
+[features]
+default-features = ["console_error_panic_hook", "wee_alloc"]
 
 [dependencies]
 base58 = "0.1.0"
@@ -19,3 +23,15 @@ libsecp256k1 = "0.1.14"
 rand = { version = "0.6", features = ["stdweb"] }
 ripemd160 = "0.8.0"
 sha2 = "0.8.0"
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+
+# The `console_error_panic_hook` crate provides better debugging of panics by
+# logging them with `console.error`. This is great for development, but requires
+# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
+# code size when deploying.
+console_error_panic_hook = { version = "0.1.1", optional = true }
+
+# `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
+# compared to the default allocator's ~10K. It is slower than the default
+# allocator, however.
+wee_alloc = { version = "0.4.1", optional = true }

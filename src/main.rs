@@ -1,4 +1,4 @@
-extern crate borker_lib as lib;
+extern crate borker_rs as lib;
 
 use std::env::args;
 

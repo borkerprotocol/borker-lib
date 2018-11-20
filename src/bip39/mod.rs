@@ -86,9 +86,9 @@ impl Seed {
         res
     }
 
-    pub fn from_words(words: [&str; 12]) -> Result<Self, failure::Error> {
+    pub fn from_words(words: [String; 12]) -> Result<Self, failure::Error> {
         let dict_vec: Vec<&'static str> = consts::DICT.to_vec();
-        let word_iter = words.into_iter().map(|s| dict_vec.binary_search(s).map_err(|_| format_err!("{} is not a valid bip39 word", s))).collect::<Result<Vec<usize>, failure::Error>>()?;
+        let word_iter = words.into_iter().map(|s| dict_vec.binary_search(&s.as_str()).map_err(|_| format_err!("{} is not a valid bip39 word", s))).collect::<Result<Vec<usize>, failure::Error>>()?;
         let mut idxs: [u16; 12] = [0; 12];
         for (idx, word_idx) in idxs.iter_mut().zip(word_iter) {
             *idx = word_idx as u16;
