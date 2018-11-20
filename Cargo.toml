@@ -13,8 +13,9 @@ name = "borker_cli"
 path = "src/main.rs"
 
 [dependencies]
-bitcoin = "0.15"
-bitcoinrpc = { git = "https://github.com/DR-BoneZ/rust-bitcoin-rpc", features = ["doge"] }
+base58 = "0.1.0"
 failure = "0.1.3"
-rand = "0.6"
+libsecp256k1 = "0.1.14"
+rand = { version = "0.6", features = ["stdweb"] }
+ripemd160 = "0.8.0"
 sha2 = "0.8.0"
