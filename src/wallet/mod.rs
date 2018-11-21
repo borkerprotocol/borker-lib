@@ -226,8 +226,8 @@ impl<'a> From<&'a mut Wallet> for SerializableWallet<'a> {
     fn from(wallet: &'a mut Wallet) -> Self {
         let entropy = &wallet.entropy;
         let long_seed = if let Some(ref data) = wallet.long_seed { Some(data as &[u8]) } else { None };
-        let mpriv = wallet.mpriv.map(|k| k.serialize());
-        let mpub = wallet.mpub.map(|k| k.serialize());
+        let mpriv = wallet.mpriv.clone().map(|k| k.serialize());
+        let mpub = wallet.mpub.clone().map(|k| k.serialize());
         SerializableWallet {
             entropy,
             long_seed,
