@@ -14,7 +14,7 @@ fn main() -> Result<(), failure::Error> {
     match map_str!(cmd.get(1)) {
         Some("new_seed") => {
             let ent = lib::new_seed();
-            eprintln!("{:?}", ent);
+            eprintln!("{:?}", ent.entropy);
             println!("{}", ent.words().join(" "))
         },
         Some("restore_seed") => {
@@ -25,7 +25,7 @@ fn main() -> Result<(), failure::Error> {
                         *out_word = in_word.clone();
                     }
                     let ent = lib::restore_seed(arr)?;
-                    eprintln!("{:?}", ent);
+                    eprintln!("{:?}", ent.entropy);
                     println!("{}", ent.words().join(" "));
                 },
                 None => eprintln!("usage: {} restore_seed <word1> <word2> ... <word12>", name)

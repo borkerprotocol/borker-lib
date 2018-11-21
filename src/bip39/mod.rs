@@ -1,16 +1,24 @@
 mod consts;
+use wasm_bindgen::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct Seed(pub [u8; 16]);
+#[wasm_bindgen]
+#[derive(Clone, Deserialize, Serialize)]
+pub struct Seed {
+    pub entropy: [u8; 16],
+    long_seed: Option<Vec<u8>>,
+}
+#[wasm_bindgen]
 impl Seed {
-    pub fn new(entropy: [u8; 16]) -> Self {
-        Seed(entropy)
+    #[wasm_bindgen(constructor)]
+    pub fn new(entropy: [u8; 16]) -> Seed {
+        Seed {
+            entropy,
+            long_seed: None,
+        }
     }
 
     fn entropy(&self) -> &[u8] {
-        match self {
-            Seed(data) => data,
-        }
+        &self.entropy
     }
 
     fn sha256sum(&self) -> u8 {
@@ -36,12 +44,12 @@ impl Seed {
             bits_taken = 3 + offset;
             bytes_taken = bytes_taken + 1;
             *idx = if offset <= 5 {
-                (((b1 & mask_16!(8 - offset)) << bits_taken) 
+                (((b1 & mask_16!(8 - offset)) << bits_taken)
                 + (b2 >> (8 - bits_taken)))
             } else if 6 <= offset && offset < 8 {
                 let b3: u16 = *self.entropy().get(bytes_taken + 1).unwrap_or(&shasum) as u16;
-                (((b1 & mask_16!(8 - offset)) << bits_taken) 
-                + (b2 << (bits_taken - 8)) 
+                (((b1 & mask_16!(8 - offset)) << bits_taken)
+                + (b2 << (bits_taken - 8))
                 + (b3 >> (16 - bits_taken)))
             } else {
                 unreachable!()
@@ -51,11 +59,11 @@ impl Seed {
                 bytes_taken = bytes_taken + 1;
             }
         }
-        
+
         res
     }
 
-    fn from_idxs(idxs: [u16; 12]) -> Result<Self, failure::Error> {
+    fn from_idxs(idxs: [u16; 12]) -> Result<Seed, failure::Error> {
         let mut entropy: [u8; 16] = [0; 16];
         let mut idx = 0;
         let mut overflow: u16 = 0;
@@ -78,15 +86,12 @@ impl Seed {
         Ok(res)
     }
 
-    pub fn words(&self) -> [&'static str; 12] {
-        let mut res = [""; 12];
-        for (word, idx) in res.iter_mut().zip(self.idxs().into_iter()) {
-            *word = consts::DICT[*idx as usize]
-        }
-        res
+    pub fn words(&self) -> Vec<String> {
+        self.idxs().into_iter().map(|idx| consts::DICT[*idx as usize].to_owned()).collect()
     }
 
-    pub fn from_words(words: [String; 12]) -> Result<Self, failure::Error> {
+    #[wasm_bindgen(constructor)]
+    pub fn from_words(words: [String; 12]) -> Result<Seed, failure::Error> {
         let dict_vec: Vec<&'static str> = consts::DICT.to_vec();
         let word_iter = words.into_iter().map(|s| dict_vec.binary_search(&s.as_str()).map_err(|_| format_err!("{} is not a valid bip39 word", s))).collect::<Result<Vec<usize>, failure::Error>>()?;
         let mut idxs: [u16; 12] = [0; 12];
