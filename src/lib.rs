@@ -5,24 +5,45 @@ extern crate serde_json;
 extern crate wasm_bindgen;
 
 use wasm_bindgen::prelude::*;
-// use wasm_bindgen::JsValue;
 use failure::Error;
 
+mod big_array;
 #[macro_use] mod macros;
-mod bip39;
+mod wallet;
 
-use self::bip39::Seed;
+pub use self::wallet::{new_wallet, restore_seed, Wallet};
+
+
+// JS Wrappers
 
 #[wasm_bindgen]
-pub fn new_seed() -> Seed {
-    use rand::RngCore;
-    use rand::rngs::EntropyRng;
-
-    let mut res: [u8; 16] = [0; 16];
-    EntropyRng::new().fill_bytes(&mut res);
-    Seed::new(res)
+pub struct JsWallet {
+    inner: Wallet
 }
 
-pub fn restore_seed(words: [String; 12]) -> Result<Seed, Error> {
-    Seed::from_words(words)
+#[wasm_bindgen]
+impl JsWallet {
+
+    #[wasm_bindgen(constructor)]
+    pub fn new(words: Option<Vec<JsValue>>) -> Result<JsWallet, JsValue> {
+        Ok(match words {
+            Some(w) => JsWallet {
+                inner: js_try!(restore_seed(&js_try!(w.iter().map(|a| a.into_serde::<String>().map_err(Error::from)).collect::<Result<Vec<String>, Error>>())))
+            },
+            None => JsWallet {
+                inner: new_wallet()
+            },
+        })
+    }
+
+    pub fn words(&self) -> Vec<JsValue> {
+        self.inner.words().into_iter().map(|a| JsValue::from_serde(a).unwrap()).collect()
+    }
+
+
+
+    pub fn panic(&self) -> Result<(), JsValue> {
+        js_bail!("this is an error");
+        Ok(())
+    }
 }
