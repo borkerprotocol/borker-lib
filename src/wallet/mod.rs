@@ -1,8 +1,8 @@
+mod child;
 mod consts;
 
-use crate::big_array::BigArray;
 use failure::Error;
-use secp256k1::{PublicKey, SecretKey};
+use self::child::ChildWallet;
 use pbkdf2::pbkdf2;
 
 type HmacSha512 = hmac::Hmac<sha2::Sha512>;
@@ -10,19 +10,29 @@ type HmacSha512 = hmac::Hmac<sha2::Sha512>;
 #[derive(Clone)]
 pub struct Wallet {
     entropy: [u8; 16],
-    long_seed: Option<[u8; 64]>,
-    mpriv: Option<SecretKey>,
-    mpub: Option<PublicKey>,
-    children: Vec<Option<ChildWallet>>,
+    parent: Option<ChildWallet>,
 }
 impl Wallet {
-    pub fn new(entropy: [u8; 16]) -> Self {
-        Wallet {
+    pub fn new() -> Self {
+        use rand::RngCore;
+        use rand::rngs::EntropyRng;
+
+        let mut res: [u8; 16] = [0; 16];
+        EntropyRng::new().fill_bytes(&mut res);
+        Self::from_entropy(res)
+    }
+
+    pub fn from_entropy(entropy: [u8; 16]) -> Self {
+        let mut res = Wallet {
             entropy,
-            long_seed: None,
-            mpriv: None,
-            mpub: None,
-        }
+            parent: None,
+        };
+        res.init();
+        res
+    }
+
+    pub fn init(&mut self) {
+        self.init_parent();
     }
 
     pub fn entropy(&self) -> &[u8] {
@@ -89,7 +99,7 @@ impl Wallet {
                 overflow = overflow & mask_16!(overflow_bits);
             }
         }
-        let res = Self::new(entropy);
+        let res = Self::from_entropy(entropy);
         ensure!(res.sha256sum() == overflow as u8, "checksum verification failed");
         Ok(res)
     }
@@ -112,57 +122,42 @@ impl Wallet {
         Ok(Self::from_idxs(idxs)?)
     }
 
-    pub fn long_seed(&mut self) -> &[u8] {
-        match self.long_seed {
-            Some(ref a) => a,
+    fn init_parent(&mut self) {
+        match self.parent {
+            Some(_) => (),
             None => {
                 let mut seed: [u8; 64] = [0; 64];
 
                 pbkdf2::<HmacSha512>(self.words().join(" ").as_bytes(), b"mnemonic", 2048, &mut seed);
-                self.long_seed = Some(seed);
-
-                self.long_seed()
+                self.parent = Some(ChildWallet::new(seed));
             },
         }
     }
 
-    pub fn mpriv_bits(&mut self) -> &[u8] {
-        &self.long_seed()[0..32]
+    pub fn parent(&self) -> &ChildWallet {
+        if let Some(ref res) = self.parent {
+            res
+        } else {
+            panic!("wallet uninitialized!")
+        }
     }
 
-    pub fn chain_code(&mut self) -> &[u8] {
-        &self.long_seed()[32..64]
-    }
-
-    pub fn mpriv(&mut self) -> &SecretKey {
-        match self.mpriv {
-            Some(ref a) => a,
-            None => {
-                self.mpriv = Some(SecretKey::parse_slice(self.mpriv_bits()).unwrap());
-
-                self.mpriv()
+    fn serializable(&self) -> Result<SerializableWallet, Error> {
+        Ok(SerializableWallet {
+            entropy: &self.entropy,
+            parent: match self.parent {
+                Some(ref a) => Some(a.as_bytes()?),
+                None => None,
             }
-        }
-    }
-
-
-    pub fn mpub(&mut self) -> &PublicKey {
-        match self.mpub {
-            Some(ref a) => a,
-            None => {
-                self.mpub = Some(PublicKey::from_secret_key(self.mpriv()));
-
-                self.mpub()
-            },
-        }
-    }
-
-    fn generate_child(&mut self, i: u32) -> Result<ChildWallet, Error> {
-        
+        })
     }
 
     pub fn as_bytes(&self) -> Result<Vec<u8>, Error> {
-        Ok(bincode::serialize(&SerializableWallet::from(self))?)
+        Ok(bincode::serialize(&self.serializable()?)?)
+    }
+
+    pub fn as_json(&self) -> Result<String, Error> {
+        Ok(serde_json::to_string(&self.serializable()?)?)
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
@@ -171,73 +166,22 @@ impl Wallet {
         let mut entropy: [u8; 16] = [0; 16];
         entropy.clone_from_slice(w.entropy);
 
-        let long_seed = match w.long_seed {
+        let parent = match w.parent {
             Some(data) => {
-                let mut long_seed_data: [u8; 64] = [0; 64];
-                long_seed_data.clone_from_slice(data);
-                Some(long_seed_data)
-            },
-            None => None,
-        };
-
-        let mpriv = match w.mpriv {
-            Some(data) => {
-                Some(SecretKey::parse(&data).map_err(|e| format_err!("{:?}", e))?)
-            },
-            None => None,
-        };
-
-        let mpub = match w.mpub {
-            Some(data) => {
-                Some(PublicKey::parse(&data).map_err(|e| format_err!("{:?}", e))?)
+                Some(ChildWallet::from_bytes(&data)?)
             },
             None => None,
         };
 
         Ok(Wallet {
             entropy,
-            long_seed,
-            mpriv,
-            mpub,
+            parent,
         })
     }
 }
 
-pub fn new_wallet() -> Wallet {
-    use rand::RngCore;
-    use rand::rngs::EntropyRng;
-
-    let mut res: [u8; 16] = [0; 16];
-    EntropyRng::new().fill_bytes(&mut res);
-    Wallet::new(res)
-}
-
-pub fn restore_seed(words: &[String]) -> Result<Wallet, Error> {
-    Wallet::from_words(words)
-}
-
-
-
 #[derive(Deserialize, Serialize)]
 pub struct SerializableWallet<'a> {
     entropy: &'a [u8],
-    long_seed: Option<&'a [u8]>,
-    mpriv: Option<[u8; 32]>,
-    #[serde(with = "BigArray")]
-    mpub: Option<[u8; 65]>,
-}
-
-impl<'a> From<&'a Wallet> for SerializableWallet<'a> {
-    fn from(wallet: &'a Wallet) -> Self {
-        let entropy = &wallet.entropy;
-        let long_seed = if let Some(ref data) = wallet.long_seed { Some(data as &[u8]) } else { None };
-        let mpriv = wallet.mpriv.clone().map(|k| k.serialize());
-        let mpub = wallet.mpub.clone().map(|k| k.serialize());
-        SerializableWallet {
-            entropy,
-            long_seed,
-            mpriv,
-            mpub,
-        }
-    }
+    parent: Option<Vec<u8>>,
 }

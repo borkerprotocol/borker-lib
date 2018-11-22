@@ -11,7 +11,7 @@ mod big_array;
 #[macro_use] mod macros;
 mod wallet;
 
-pub use self::wallet::{new_wallet, restore_seed, Wallet};
+pub use self::wallet::{Wallet};
 
 
 // JS Wrappers
@@ -28,10 +28,10 @@ impl JsWallet {
     pub fn new(words: Option<Vec<JsValue>>) -> Result<JsWallet, JsValue> {
         Ok(match words {
             Some(w) => JsWallet {
-                inner: js_try!(restore_seed(&js_try!(w.iter().map(|a| a.into_serde::<String>().map_err(Error::from)).collect::<Result<Vec<String>, Error>>())))
+                inner: js_try!(Wallet::from_words(&js_try!(w.iter().map(|a| a.into_serde::<String>().map_err(Error::from)).collect::<Result<Vec<String>, Error>>())))
             },
             None => JsWallet {
-                inner: new_wallet()
+                inner: Wallet::new()
             },
         })
     }
