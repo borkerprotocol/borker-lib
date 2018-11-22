@@ -152,17 +152,7 @@ impl Wallet {
         })
     }
 
-    pub fn as_bytes(&self) -> Result<Vec<u8>, Error> {
-        Ok(bincode::serialize(&self.serializable()?)?)
-    }
-
-    pub fn as_json(&self) -> Result<String, Error> {
-        Ok(serde_json::to_string(&self.serializable()?)?)
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let w: SerializableWallet = bincode::deserialize(bytes)?;
-
+    fn from_serializable(w: SerializableWallet) -> Result<Self, Error> {
         let mut entropy: [u8; 16] = [0; 16];
         entropy.clone_from_slice(w.entropy);
 
@@ -177,6 +167,24 @@ impl Wallet {
             entropy,
             parent,
         })
+    }
+
+    pub fn as_json(&self) -> Result<String, Error> {
+        Ok(serde_json::to_string(&self.serializable()?)?)
+    }
+
+    pub fn from_json(json: &str) -> Result<Self, Error> {
+        let w: SerializableWallet = serde_json::from_str(json)?;
+        Self::from_serializable(w)
+    }
+
+    pub fn as_bytes(&self) -> Result<Vec<u8>, Error> {
+        Ok(bincode::serialize(&self.serializable()?)?)
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        let w: SerializableWallet = bincode::deserialize(bytes)?;
+        Self::from_serializable(w)
     }
 }
 
