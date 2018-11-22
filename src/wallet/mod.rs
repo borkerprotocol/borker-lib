@@ -13,6 +13,7 @@ pub struct Wallet {
     long_seed: Option<[u8; 64]>,
     mpriv: Option<SecretKey>,
     mpub: Option<PublicKey>,
+    children: Vec<Option<ChildWallet>>,
 }
 impl Wallet {
     pub fn new(entropy: [u8; 16]) -> Self {
@@ -156,11 +157,15 @@ impl Wallet {
         }
     }
 
-    fn as_bytes(&mut self) -> Result<Vec<u8>, Error> {
+    fn generate_child(&mut self, i: u32) -> Result<ChildWallet, Error> {
+        
+    }
+
+    pub fn as_bytes(&self) -> Result<Vec<u8>, Error> {
         Ok(bincode::serialize(&SerializableWallet::from(self))?)
     }
 
-    fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let w: SerializableWallet = bincode::deserialize(bytes)?;
 
         let mut entropy: [u8; 16] = [0; 16];
@@ -222,8 +227,8 @@ pub struct SerializableWallet<'a> {
     mpub: Option<[u8; 65]>,
 }
 
-impl<'a> From<&'a mut Wallet> for SerializableWallet<'a> {
-    fn from(wallet: &'a mut Wallet) -> Self {
+impl<'a> From<&'a Wallet> for SerializableWallet<'a> {
+    fn from(wallet: &'a Wallet) -> Self {
         let entropy = &wallet.entropy;
         let long_seed = if let Some(ref data) = wallet.long_seed { Some(data as &[u8]) } else { None };
         let mpriv = wallet.mpriv.clone().map(|k| k.serialize());

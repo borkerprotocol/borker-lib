@@ -40,10 +40,17 @@ impl JsWallet {
         self.inner.words().into_iter().map(|a| JsValue::from_serde(a).unwrap()).collect()
     }
 
+    // pub fn privKey(&self) -> String {
+        // format!("{}", self.inner.mpriv())
+    // }
 
+    pub fn toBuffer(&self) -> Result<Vec<u8>, JsValue> {
+        Ok(js_try!(self.inner.as_bytes()))
+    }
 
-    pub fn panic(&self) -> Result<(), JsValue> {
-        js_bail!("this is an error");
-        Ok(())
+    pub fn fromBuffer(buffer: Vec<u8>) -> Result<JsWallet, JsValue> {
+        Ok(JsWallet {
+            inner: js_try!(Wallet::from_bytes(&buffer))
+        })
     }
 }
