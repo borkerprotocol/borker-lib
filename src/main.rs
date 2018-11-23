@@ -20,9 +20,7 @@ fn main() -> Result<(), failure::Error> {
             match cmd.get(2..14) {
                 Some(a) => {
                     let ent = lib::Wallet::from_words(a)?;
-                    eprintln!("{}", ent.as_json()?);
                     println!("{}", hex::encode(&ent.as_bytes()?));
-                    ent.parent().check_ser()?;
                 },
                 None => eprintln!("usage: {} restore_seed <word1> <word2> ... <word12>", name)
             }

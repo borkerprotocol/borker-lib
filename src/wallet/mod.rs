@@ -144,9 +144,9 @@ impl Wallet {
 
     fn serializable(&self) -> Result<SerializableWallet, Error> {
         Ok(SerializableWallet {
-            entropy: &self.entropy,
+            entropy: self.entropy.to_vec(),
             parent: match self.parent {
-                Some(ref a) => Some(a.as_bytes()?),
+                Some(ref a) => Some(ByteVec(a.as_bytes()?)),
                 None => None,
             }
         })
@@ -154,11 +154,11 @@ impl Wallet {
 
     fn from_serializable(w: SerializableWallet) -> Result<Self, Error> {
         let mut entropy: [u8; 16] = [0; 16];
-        entropy.clone_from_slice(w.entropy);
+        entropy.clone_from_slice(&w.entropy);
 
         let parent = match w.parent {
-            Some(data) => {
-                Some(ChildWallet::from_bytes(&data)?)
+            Some(ByteVec(ref data)) => {
+                Some(ChildWallet::from_bytes(data)?)
             },
             None => None,
         };
@@ -169,27 +169,33 @@ impl Wallet {
         })
     }
 
-    pub fn as_json(&self) -> Result<String, Error> {
-        Ok(serde_json::to_string(&self.serializable()?)?)
-    }
+    pub fn check_ser(&self) -> Result<(), Error> {
+        let a = self.as_bytes()?;
 
-    pub fn from_json(json: &str) -> Result<Self, Error> {
-        let w: SerializableWallet = serde_json::from_str(json)?;
-        Self::from_serializable(w)
+        Wallet::from_bytes(&a)?;
+
+        Ok(())
     }
 
     pub fn as_bytes(&self) -> Result<Vec<u8>, Error> {
-        Ok(bincode::serialize(&self.serializable()?)?)
+        Ok(serde_cbor::to_vec(&self.serializable()?)?)
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let w: SerializableWallet = bincode::deserialize(bytes)?;
+        let w: SerializableWallet = serde_cbor::from_slice(bytes)?;
         Self::from_serializable(w)
     }
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct SerializableWallet<'a> {
-    entropy: &'a [u8],
-    parent: Option<Vec<u8>>,
+struct ByteVec (
+    #[serde(with = "serde_bytes")]
+    pub Vec<u8>,
+);
+
+#[derive(Deserialize, Serialize)]
+pub struct SerializableWallet {
+    #[serde(with = "serde_bytes")]
+    entropy: Vec<u8>,
+    parent: Option<ByteVec>,
 }
