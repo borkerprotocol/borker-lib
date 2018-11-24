@@ -1,3 +1,5 @@
+#![feature(int_to_from_bytes)]
+
 #[macro_use] extern crate failure;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
@@ -44,10 +46,12 @@ impl JsWallet {
         // format!("{}", self.inner.mpriv())
     // }
 
+    #[allow(non_snake_case)]
     pub fn toBuffer(&self) -> Result<Vec<u8>, JsValue> {
         Ok(js_try!(self.inner.as_bytes()))
     }
 
+    #[allow(non_snake_case)]
     pub fn fromBuffer(buffer: Vec<u8>) -> Result<JsWallet, JsValue> {
         Ok(JsWallet {
             inner: js_try!(Wallet::from_bytes(&buffer))

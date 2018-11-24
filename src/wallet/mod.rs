@@ -5,7 +5,7 @@ use failure::Error;
 use self::child::ChildWallet;
 use pbkdf2::pbkdf2;
 
-type HmacSha512 = hmac::Hmac<sha2::Sha512>;
+pub type HmacSha512 = hmac::Hmac<sha2::Sha512>;
 
 #[derive(Clone)]
 pub struct Wallet {

@@ -1,6 +1,9 @@
 use crate::big_array::BigArray;
 use failure::Error;
+use hmac::Mac;
 use secp256k1::{PublicKey, SecretKey};
+use secp256k1::curve::{Scalar};
+use super::HmacSha512;
 
 #[derive(Clone)]
 pub struct ChildWallet {
@@ -56,6 +59,42 @@ impl ChildWallet {
         } else {
             panic!("wallet uninitialized")
         }
+    }
+
+    pub fn next_child(&mut self) -> Result<&ChildWallet, Error> {
+        self.load_child(self.children.len() as u32)
+    }
+
+    pub fn load_child(&mut self, i: u32) -> Result<&ChildWallet, Error> {
+        let c = self.get_child(i);
+        if let Some(ref a) = c {
+            Ok(a)
+        } else {
+            let mut mac = HmacSha512::new_varkey(self.chain_code()).map_err(|e| format_err!("{}", e))?;
+            let mut v = self.mpub().serialize_compressed().to_vec();
+            v.extend(&i.to_be_bytes());
+            mac.input(&v);
+            let mut l: [u8; 64] = [0; 64];
+            l.clone_from_slice(mac.result().code().as_slice());
+            let ll: Scalar = SecretKey::parse_slice(&l[0..32]).map_err(|e| format_err!("{:?}", e))?.into();
+            let cpriv = ll + self.mpriv().clone().into();
+            let cpriv_bytes = cpriv.b32();
+            for n in 0..32 {
+                l[n] = cpriv_bytes[n];
+            }
+            let w = ChildWallet::new(l);
+            assert!(i >= self.children.len() as u32);
+            while i > self.children.len() as u32 {
+                self.children.push(None);
+            }
+            self.children.push(Some(w));
+            self.load_child(i)
+        }
+
+    }
+
+    pub fn get_child(&self, i: u32) -> Option<&ChildWallet> {
+        self.children.get(i as usize).and_then(|a| a.as_ref())
     }
 
     fn serializable(&self) -> Result<SerializableChildWallet, Error> {
