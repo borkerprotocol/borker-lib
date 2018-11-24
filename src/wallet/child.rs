@@ -42,11 +42,7 @@ impl ChildWallet {
     }
 
     pub fn mpriv(&self) -> &SecretKey {
-        if let Some(ref res) = self.mpriv {
-            res
-        } else {
-            panic!("wallet uninitialized")
-        }
+        self.mpriv.as_ref().expect("wallet uninitialized")
     }
 
     fn init_mpub(&mut self) {
@@ -54,11 +50,7 @@ impl ChildWallet {
     }
 
     pub fn mpub(&self) -> &PublicKey {
-        if let Some(ref res) = self.mpub {
-            res
-        } else {
-            panic!("wallet uninitialized")
-        }
+        self.mpub.as_ref().expect("wallet uninitialized")
     }
 
     pub fn next_child(&mut self) -> Result<&ChildWallet, Error> {
