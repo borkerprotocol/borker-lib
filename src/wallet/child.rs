@@ -42,11 +42,7 @@ impl ChildWallet {
     }
 
     pub fn mpriv(&self) -> &SecretKey {
-        if let Some(ref res) = self.mpriv {
-            res
-        } else {
-            panic!("wallet uninitialized")
-        }
+        self.mpriv.as_ref().expect("wallet uninitialized")
     }
 
     fn init_mpub(&mut self) {
@@ -54,22 +50,20 @@ impl ChildWallet {
     }
 
     pub fn mpub(&self) -> &PublicKey {
-        if let Some(ref res) = self.mpub {
-            res
-        } else {
-            panic!("wallet uninitialized")
-        }
+        self.mpub.as_ref().expect("wallet uninitialized")
     }
 
     pub fn next_child(&mut self) -> Result<&ChildWallet, Error> {
-        self.load_child(self.children.len() as u32)
+        self.load_child(self.children.len())
     }
 
-    pub fn load_child(&mut self, i: u32) -> Result<&ChildWallet, Error> {
-        let c = self.get_child(i);
-        if let Some(ref a) = c {
-            Ok(a)
-        } else {
+    pub fn load_child(&mut self, i: usize) -> Result<&ChildWallet, Error> {
+        let min_len = i + 1;
+        if self.children.len() < min_len {
+            self.children.resize(min_len, None);
+        }
+
+        if self.children[i].is_none() {
             let mut mac = HmacSha512::new_varkey(self.chain_code()).map_err(|e| format_err!("{}", e))?;
             let mut v = self.mpub().serialize_compressed().to_vec();
             v.extend(&i.to_be_bytes());
@@ -82,15 +76,10 @@ impl ChildWallet {
             for n in 0..32 {
                 l[n] = cpriv_bytes[n];
             }
-            let w = ChildWallet::new(l);
-            assert!(i >= self.children.len() as u32);
-            while i > self.children.len() as u32 {
-                self.children.push(None);
-            }
-            self.children.push(Some(w));
-            self.load_child(i)
+            self.children[i] = Some(ChildWallet::new(l));
         }
 
+        Ok(self.children[i].as_ref().unwrap())
     }
 
     pub fn get_child(&self, i: u32) -> Option<&ChildWallet> {
@@ -101,7 +90,7 @@ impl ChildWallet {
         let seed = self.seed.clone();
         let mpriv = self.mpriv.clone().map(|k| k.serialize());
         let mpub = self.mpub.clone().map(|k| k.serialize());
-        let children: Vec<Option<ByteVec>> = 
+        let children: Vec<Option<ByteVec>> =
             self.children.iter().map(|c| match c {
                 Some(c) => Ok(Some(ByteVec(c.as_bytes()?))),
                 None => Ok(None),
@@ -113,7 +102,7 @@ impl ChildWallet {
             children,
         })
     }
-    
+
     fn from_serializable(w: SerializableChildWallet) -> Result<Self, Error> {
         let seed = w.seed;
 
@@ -131,7 +120,7 @@ impl ChildWallet {
             None => None,
         };
 
-        let children: Vec<Option<ChildWallet>> = 
+        let children: Vec<Option<ChildWallet>> =
             w.children.iter().map(|c| match c {
                 Some(ByteVec(ref c)) => Ok(Some(ChildWallet::from_bytes(c)?)),
                 None => Ok(None),
