@@ -14,7 +14,7 @@ looking up the referenced output.
 `Version (2 bytes)` `00` `<utf-8 encoded nickname> (0-77 bytes)`
 
 ### Avatar Declaration
-`Version (2 bytes)` `01` `<link to avatar image> (0-77 bytes)`
+`Version (2 bytes)` `01` `Nonce (1 byte)` `<base64 encoded avatar image> (0-76 bytes)`
 
 ### Borks
 
