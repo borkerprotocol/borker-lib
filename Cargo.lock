@@ -64,7 +64,7 @@ dependencies = [
 
 [[package]]
 name = "borker-rs"
-version = "0.1.2"
+version = "0.1.5"
 dependencies = [
  "base58 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "console_error_panic_hook 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",

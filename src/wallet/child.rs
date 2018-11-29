@@ -54,16 +54,16 @@ impl ChildWallet {
     }
 
     pub fn next_child(&mut self) -> Result<&ChildWallet, Error> {
-        self.load_child(self.children.len())
+        self.load_child(self.children.len() as u32)
     }
 
-    pub fn load_child(&mut self, i: usize) -> Result<&ChildWallet, Error> {
+    pub fn load_child(&mut self, i: u32) -> Result<&ChildWallet, Error> {
         let min_len = i + 1;
-        if self.children.len() < min_len {
-            self.children.resize(min_len, None);
+        if (self.children.len() as u32) < min_len {
+            self.children.resize(min_len as usize, None);
         }
 
-        if self.children[i].is_none() {
+        if self.children[i as usize].is_none() {
             let mut mac = HmacSha512::new_varkey(self.chain_code()).map_err(|e| format_err!("{}", e))?;
             let mut v = self.mpub().serialize_compressed().to_vec();
             v.extend(&i.to_be_bytes());
@@ -76,10 +76,10 @@ impl ChildWallet {
             for n in 0..32 {
                 l[n] = cpriv_bytes[n];
             }
-            self.children[i] = Some(ChildWallet::new(l));
+            self.children[i as usize] = Some(ChildWallet::new(l));
         }
 
-        Ok(self.children[i].as_ref().unwrap())
+        Ok(self.children[i as usize].as_ref().unwrap())
     }
 
     pub fn get_child(&self, i: u32) -> Option<&ChildWallet> {

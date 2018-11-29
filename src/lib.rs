@@ -42,9 +42,9 @@ impl JsWallet {
         self.inner.words().into_iter().map(|a| JsValue::from_serde(a).unwrap()).collect()
     }
 
-    // pub fn privKey(&self) -> String {
-        // format!("{}", self.inner.mpriv())
-    // }
+    pub fn child(&mut self, i: u32) -> Result<Vec<u8>, JsValue> {
+        Ok(js_try!(self.inner.parent_mut().load_child(i)).mpriv_bits().to_vec())
+    }
 
     #[allow(non_snake_case)]
     pub fn toBuffer(&self) -> Result<Vec<u8>, JsValue> {

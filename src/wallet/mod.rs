@@ -135,11 +135,11 @@ impl Wallet {
     }
 
     pub fn parent(&self) -> &ChildWallet {
-        if let Some(ref res) = self.parent {
-            res
-        } else {
-            panic!("wallet uninitialized!")
-        }
+        self.parent.as_ref().expect("wallet uninitialized")
+    }
+
+    pub fn parent_mut(&mut self) -> &mut ChildWallet {
+        self.parent.as_mut().expect("wallet uninitialized")
     }
 
     fn serializable(&self) -> Result<SerializableWallet, Error> {
