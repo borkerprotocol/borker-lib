@@ -40,11 +40,12 @@ impl JsWallet {
         self.inner.words().into_iter().map(|a| JsValue::from_serde(a).unwrap()).collect()
     }
 
-    pub fn child_at(&mut self, derivation_path: Vec<u32>) -> Result<JsChildWallet, JsValue> {
+    #[allow(non_snake_case)]
+    pub fn childAt(&mut self, derivation_path: Vec<f64>) -> Result<JsChildWallet, JsValue> {
         let mut cur: &mut ChildWallet = &mut self.inner.parent_mut();
 
         for idx in derivation_path {
-            cur = js_try!(cur.load_child(idx))
+            cur = js_try!(cur.load_child(idx.abs() as u32, idx.is_sign_negative()))
         }
         Ok(JsChildWallet {
             inner: cur.clone(),

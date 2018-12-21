@@ -15,6 +15,7 @@ pub struct ChildWallet {
     mpriv: Option<SecretKey>,
     mpub: Option<PublicKey>,
     children: Vec<Option<ChildWallet>>,
+    hardened_children: Vec<Option<ChildWallet>>,
 }
 impl ChildWallet {
     pub fn new(seed: [u8; 64]) -> Self {
@@ -23,6 +24,7 @@ impl ChildWallet {
             mpriv: None,
             mpub: None,
             children: Vec::new(),
+            hardened_children: Vec::new(),
         };
         res.init();
         res
@@ -57,37 +59,71 @@ impl ChildWallet {
         self.mpub.as_ref().expect("wallet uninitialized")
     }
 
-    pub fn next_child(&mut self) -> Result<&mut ChildWallet, Error> {
-        self.load_child(self.children.len() as u32)
+    pub fn next_child(&mut self, hardened: bool) -> Result<&mut ChildWallet, Error> {
+        if !hardened {
+            self.load_child(self.children.len() as u32, false)
+        } else {
+            self.load_child(self.hardened_children.len() as u32, true)
+        }
     }
 
-    pub fn load_child(&mut self, i: u32) -> Result<&mut ChildWallet, Error> {
-        let min_len = i + 1;
-        if (self.children.len() as u32) < min_len {
-            self.children.resize(min_len as usize, None);
-        }
-
-        if self.children[i as usize].is_none() {
-            let mut mac = HmacSha512::new_varkey(self.chain_code()).map_err(|e| format_err!("{}", e))?;
-            let mut v = self.mpub().serialize_compressed().to_vec();
-            v.extend(&i.to_be_bytes());
-            mac.input(&v);
-            let mut l: [u8; 64] = [0; 64];
-            l.clone_from_slice(mac.result().code().as_slice());
-            let ll: Scalar = SecretKey::parse_slice(&l[0..32]).map_err(|e| format_err!("{:?}", e))?.into();
-            let cpriv = ll + self.mpriv().clone().into();
-            let cpriv_bytes = cpriv.b32();
-            for n in 0..32 {
-                l[n] = cpriv_bytes[n];
+    pub fn load_child(&mut self, i: u32, hardened: bool) -> Result<&mut ChildWallet, Error> {
+        if !hardened {
+            let min_len = i + 1;
+            if (self.children.len() as u32) < min_len {
+                self.children.resize(min_len as usize, None);
             }
-            self.children[i as usize] = Some(ChildWallet::new(l));
-        }
 
-        Ok(self.children[i as usize].as_mut().unwrap())
+            if self.children[i as usize].is_none() {
+                let mut mac = HmacSha512::new_varkey(self.chain_code()).map_err(|e| format_err!("{}", e))?;
+                let mut v = self.mpub().serialize_compressed().to_vec();
+                v.extend(&i.to_be_bytes());
+                mac.input(&v);
+                let mut l: [u8; 64] = [0; 64];
+                l.clone_from_slice(mac.result().code().as_slice());
+                let ll: Scalar = SecretKey::parse_slice(&l[0..32]).map_err(|e| format_err!("{:?}", e))?.into();
+                let cpriv = ll + self.mpriv().clone().into();
+                let cpriv_bytes = cpriv.b32();
+                for n in 0..32 {
+                    l[n] = cpriv_bytes[n];
+                }
+                self.children[i as usize] = Some(ChildWallet::new(l));
+            }
+
+            Ok(self.children[i as usize].as_mut().unwrap())
+        } else {
+            let hardened_i: u32 = 2^31 + i;
+            let min_len = i + 1;
+            if (self.hardened_children.len() as u32) < min_len {
+                self.hardened_children.resize(min_len as usize, None);
+            }
+
+            if self.hardened_children[i as usize].is_none() {
+                let mut mac = HmacSha512::new_varkey(self.chain_code()).map_err(|e| format_err!("{}", e))?;
+                let mut v = [&[0x0], &self.mpriv().serialize()[..]].concat().to_vec();
+                v.extend(&hardened_i.to_be_bytes());
+                mac.input(&v);
+                let mut l: [u8; 64] = [0; 64];
+                l.clone_from_slice(mac.result().code().as_slice());
+                let ll: Scalar = SecretKey::parse_slice(&l[0..32]).map_err(|e| format_err!("{:?}", e))?.into();
+                let cpriv = ll + self.mpriv().clone().into();
+                let cpriv_bytes = cpriv.b32();
+                for n in 0..32 {
+                    l[n] = cpriv_bytes[n];
+                }
+                self.hardened_children[i as usize] = Some(ChildWallet::new(l));
+            }
+
+            Ok(self.hardened_children[i as usize].as_mut().unwrap())
+        }
     }
 
-    pub fn get_child(&self, i: u32) -> Option<&ChildWallet> {
-        self.children.get(i as usize).and_then(|a| a.as_ref())
+    pub fn get_child(&self, i: u32, hardened: bool) -> Option<&ChildWallet> {
+        if !hardened {
+            self.children.get(i as usize).and_then(|a| a.as_ref())
+        } else {
+            self.hardened_children.get(i as usize).and_then(|a| a.as_ref())
+        }
     }
 
     pub fn pubkey_hash(&self) -> Vec<u8> {
@@ -133,11 +169,20 @@ impl ChildWallet {
                 Some(c) => Ok(Some(ByteVec(c.as_bytes()?))),
                 None => Ok(None),
             }).collect::<Result<Vec<Option<ByteVec>>, Error>>()?;
+
+
+        let hardened_children: Vec<Option<ByteVec>> =
+            self.hardened_children.iter().map(|c| match c {
+                Some(c) => Ok(Some(ByteVec(c.as_bytes()?))),
+                None => Ok(None),
+            }).collect::<Result<Vec<Option<ByteVec>>, Error>>()?;
+
         Ok(SerializableChildWallet {
             seed,
             mpriv,
             mpub,
             children,
+            hardened_children,
         })
     }
 
@@ -164,11 +209,18 @@ impl ChildWallet {
                 None => Ok(None),
             }).collect::<Result<Vec<Option<ChildWallet>>, Error>>()?;
 
+        let hardened_children: Vec<Option<ChildWallet>> =
+            w.hardened_children.iter().map(|c| match c {
+                Some(ByteVec(ref c)) => Ok(Some(ChildWallet::from_bytes(c)?)),
+                None => Ok(None),
+            }).collect::<Result<Vec<Option<ChildWallet>>, Error>>()?;
+
         Ok(ChildWallet {
             seed,
             mpriv,
             mpub,
             children,
+            hardened_children,
         })
     }
 
@@ -196,4 +248,5 @@ pub struct SerializableChildWallet {
     #[serde(with = "BigArray")]
     mpub: Option<[u8; 65]>,
     children: Vec<Option<ByteVec>>,
+    hardened_children: Vec<Option<ByteVec>>,
 }
