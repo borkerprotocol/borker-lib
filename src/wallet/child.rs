@@ -53,11 +53,11 @@ impl ChildWallet {
         self.mpub.as_ref().expect("wallet uninitialized")
     }
 
-    pub fn next_child(&mut self) -> Result<&ChildWallet, Error> {
+    pub fn next_child(&mut self) -> Result<&mut ChildWallet, Error> {
         self.load_child(self.children.len() as u32)
     }
 
-    pub fn load_child(&mut self, i: u32) -> Result<&ChildWallet, Error> {
+    pub fn load_child(&mut self, i: u32) -> Result<&mut ChildWallet, Error> {
         let min_len = i + 1;
         if (self.children.len() as u32) < min_len {
             self.children.resize(min_len as usize, None);
@@ -79,7 +79,7 @@ impl ChildWallet {
             self.children[i as usize] = Some(ChildWallet::new(l));
         }
 
-        Ok(self.children[i as usize].as_ref().unwrap())
+        Ok(self.children[i as usize].as_mut().unwrap())
     }
 
     pub fn get_child(&self, i: u32) -> Option<&ChildWallet> {
