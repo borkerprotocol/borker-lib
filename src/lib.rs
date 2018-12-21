@@ -1,5 +1,3 @@
-#![feature(int_to_from_bytes)]
-
 #[macro_use] extern crate failure;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
@@ -7,7 +5,6 @@ extern crate serde_json;
 extern crate wasm_bindgen;
 
 use failure::Error;
-use sha2::Sha256;
 use wasm_bindgen::prelude::*;
 
 mod big_array;

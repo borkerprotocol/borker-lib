@@ -14,7 +14,7 @@ name = "borker_cli"
 path = "src/main.rs"
 
 [features]
-default-features = ["console_error_panic_hook", "wee_alloc"]
+default = ["console_error_panic_hook", "wee_alloc"]
 
 [dependencies]
 base58 = "0.1.0"
