@@ -2,7 +2,7 @@ mod child;
 mod consts;
 
 use failure::Error;
-use self::child::ChildWallet;
+pub use self::child::ChildWallet;
 use pbkdf2::pbkdf2;
 
 pub type HmacSha512 = hmac::Hmac<sha2::Sha512>;
