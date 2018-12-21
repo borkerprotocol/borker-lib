@@ -1,3 +1,4 @@
+use base58::ToBase58;
 use crate::big_array::BigArray;
 use crate::Network;
 use failure::Error;
@@ -118,7 +119,9 @@ impl ChildWallet {
         hasher.input(&res);
         let chksum = hasher.result();
 
-        "".to_owned()
+        addr_bytes.extend(&chksum[0..4]);
+
+        ToBase58::to_base58(addr_bytes.as_slice())
     }
 
     fn serializable(&self) -> Result<SerializableChildWallet, Error> {
