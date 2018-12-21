@@ -1,8 +1,11 @@
 use crate::big_array::BigArray;
+use crate::Network;
 use failure::Error;
 use hmac::Mac;
+use ripemd160::{Ripemd160, Digest};
 use secp256k1::{PublicKey, SecretKey};
 use secp256k1::curve::{Scalar};
+use sha2::{Sha256};
 use super::HmacSha512;
 
 #[derive(Clone)]
@@ -84,6 +87,38 @@ impl ChildWallet {
 
     pub fn get_child(&self, i: u32) -> Option<&ChildWallet> {
         self.children.get(i as usize).and_then(|a| a.as_ref())
+    }
+
+    pub fn pubkey_hash(&self) -> Vec<u8> {
+        let mut hasher = Sha256::new();
+        hasher.input(&self.mpub().serialize_compressed()[..]);
+        let sha_bytes = hasher.result();
+
+        let mut hasher = Ripemd160::new();
+        hasher.input(&sha_bytes);
+        let ripe_bytes = hasher.result();
+
+        ripe_bytes.to_vec()
+    }
+
+    pub fn address(&self, network: Network) -> String {
+        let version_byte: u8 = match network {
+            Network::Dogecoin => 0x1E,
+            Network::Litecoin => 0x30,
+            Network::Bitcoin => 0x00,
+        };
+
+        let mut addr_bytes: Vec<u8> = vec![version_byte];
+        addr_bytes.extend(&self.pubkey_hash());
+
+        let mut hasher = Sha256::new();
+        hasher.input(&addr_bytes);
+        let res = hasher.result();
+        let mut hasher = Sha256::new();
+        hasher.input(&res);
+        let chksum = hasher.result();
+
+        "".to_owned()
     }
 
     fn serializable(&self) -> Result<SerializableChildWallet, Error> {

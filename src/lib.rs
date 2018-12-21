@@ -44,10 +44,10 @@ impl JsWallet {
     }
 
     pub fn child_at(&mut self, derivation_path: Vec<u32>) -> Result<JsChildWallet, JsValue> {
-        let mut cur: &mut ChildWallet = &mut self.inner;
+        let mut cur: &mut ChildWallet = &mut self.inner.parent_mut();
 
         for idx in derivation_path {
-            cur = js_try!(cur.load_child(idx));
+            cur = js_try!(cur.load_child(idx))
         }
         Ok(JsChildWallet {
             inner: cur.clone(),
@@ -83,16 +83,6 @@ pub struct JsChildWallet {
 #[wasm_bindgen]
 impl JsChildWallet {
     pub fn address(&self, network: Network) -> String {
-        let version_byte: u8 = match network {
-            Dogecoin => 0x1E,
-            Litecoin => 0x30,
-            Bitcoin => 0x00,
-        };
-
-        let mut sha_hasher = Sha256::new();
-        sha_hasher.input(self.inner.mpub().serialize());
-        let mut ripemd_hasher = 
-        let pkh = hasher.result();
-
+        self.inner.address(network)
     }
 }
