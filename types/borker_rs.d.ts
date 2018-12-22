@@ -1,15 +1,30 @@
 /* tslint:disable */
 export class JsWallet {
- free(): void;
 
- constructor(words?: string[]);
+  free(): void;
 
- words(): string[];
+  constructor(words?: string[]);
 
- child(i: number): Uint8Array;
+  words(): string[];
 
- toBuffer(): Uint8Array;
+  childAt(derivationPath: number[]): JsChildWallet;
 
- static fromBuffer(buf: Uint8Array): JsWallet;
+  toBuffer(): Uint8Array;
+
+  static fromBuffer(buf: Uint8Array): JsWallet;
+
+}
+
+export enum Network {
+  Dogecoin,
+  Litecoin,
+  Bitcoin,
+}
+
+export class JsChildWallet {
+
+  free(): void;
+
+  address(network: Network): string;
 
 }
