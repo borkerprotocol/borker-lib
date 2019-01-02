@@ -13,6 +13,28 @@ mod wallet;
 
 pub use self::wallet::{ChildWallet, Wallet};
 
+pub enum Bork {
+    Bork {
+        message: String,
+        ats: Vec<String>,
+    },
+    Reply {
+        address: String,
+        reference_nonce: u8,
+        message: String,
+        ats: Vec<String>
+    },
+    Like {
+        address: String,
+        reference_nonce: u8,
+    },
+    Rebork {
+        address: String,
+        reference_nonce: u8,
+        message: String,
+        ats: Vec<String>,
+    },
+}
 
 // JS Wrappers
 
