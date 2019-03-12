@@ -1,6 +1,9 @@
-#[macro_use] extern crate failure;
+extern crate bitcoin;
+#[macro_use]
+extern crate failure;
 extern crate serde;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate wasm_bindgen;
 
@@ -8,7 +11,8 @@ use failure::Error;
 use wasm_bindgen::prelude::*;
 
 mod big_array;
-#[macro_use] mod macros;
+#[macro_use]
+mod macros;
 mod wallet;
 
 pub use self::wallet::{ChildWallet, Wallet};
@@ -22,7 +26,7 @@ pub enum Bork {
         address: String,
         reference_nonce: u8,
         message: String,
-        ats: Vec<String>
+        ats: Vec<String>,
     },
     Like {
         address: String,
@@ -40,26 +44,32 @@ pub enum Bork {
 
 #[wasm_bindgen]
 pub struct JsWallet {
-    inner: Wallet
+    inner: Wallet,
 }
 
 #[wasm_bindgen]
 impl JsWallet {
-
     #[wasm_bindgen(constructor)]
     pub fn new(words: Option<Vec<JsValue>>) -> Result<JsWallet, JsValue> {
         Ok(match words {
             Some(w) => JsWallet {
-                inner: js_try!(Wallet::from_words(&js_try!(w.iter().map(|a| a.into_serde::<String>().map_err(Error::from)).collect::<Result<Vec<String>, Error>>())))
+                inner: js_try!(Wallet::from_words(&js_try!(w
+                    .iter()
+                    .map(|a| a.into_serde::<String>().map_err(Error::from))
+                    .collect::<Result<Vec<String>, Error>>()))),
             },
             None => JsWallet {
-                inner: Wallet::new()
+                inner: Wallet::new(),
             },
         })
     }
 
     pub fn words(&self) -> Vec<JsValue> {
-        self.inner.words().into_iter().map(|a| JsValue::from_serde(a).unwrap()).collect()
+        self.inner
+            .words()
+            .into_iter()
+            .map(|a| JsValue::from_serde(a).unwrap())
+            .collect()
     }
 
     #[allow(non_snake_case)]
@@ -69,9 +79,7 @@ impl JsWallet {
         for idx in derivation_path {
             cur = js_try!(cur.load_child(idx.abs() as u32, idx.is_sign_negative()))
         }
-        Ok(JsChildWallet {
-            inner: cur.clone(),
-        })
+        Ok(JsChildWallet { inner: cur.clone() })
     }
 
     #[allow(non_snake_case)]
@@ -82,7 +90,7 @@ impl JsWallet {
     #[allow(non_snake_case)]
     pub fn fromBuffer(buffer: Vec<u8>) -> Result<JsWallet, JsValue> {
         Ok(JsWallet {
-            inner: js_try!(Wallet::from_bytes(&buffer))
+            inner: js_try!(Wallet::from_bytes(&buffer)),
         })
     }
 }
@@ -97,7 +105,7 @@ pub enum Network {
 
 #[wasm_bindgen]
 pub struct JsChildWallet {
-    inner: ChildWallet
+    inner: ChildWallet,
 }
 
 #[wasm_bindgen]

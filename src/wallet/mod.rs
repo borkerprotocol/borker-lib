@@ -1,8 +1,8 @@
 mod child;
 mod consts;
 
-use failure::Error;
 pub use self::child::ChildWallet;
+use failure::Error;
 use pbkdf2::pbkdf2;
 
 pub type HmacSha512 = hmac::Hmac<sha2::Sha512>;
@@ -14,8 +14,8 @@ pub struct Wallet {
 }
 impl Wallet {
     pub fn new() -> Self {
-        use rand::RngCore;
         use rand::rngs::EntropyRng;
+        use rand::RngCore;
 
         let mut res: [u8; 16] = [0; 16];
         EntropyRng::new().fill_bytes(&mut res);
@@ -40,7 +40,7 @@ impl Wallet {
     }
 
     fn sha256sum(&self) -> u8 {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         let mut hasher = Sha256::new();
         hasher.input(self.entropy());
@@ -62,13 +62,12 @@ impl Wallet {
             bits_taken = 3 + offset;
             bytes_taken = bytes_taken + 1;
             *idx = if offset <= 5 {
-                (((b1 & mask_16!(8 - offset)) << bits_taken)
-                + (b2 >> (8 - bits_taken)))
+                (((b1 & mask_16!(8 - offset)) << bits_taken) + (b2 >> (8 - bits_taken)))
             } else if 6 <= offset && offset < 8 {
                 let b3: u16 = *self.entropy().get(bytes_taken + 1).unwrap_or(&shasum) as u16;
                 (((b1 & mask_16!(8 - offset)) << bits_taken)
-                + (b2 << (bits_taken - 8))
-                + (b3 >> (16 - bits_taken)))
+                    + (b2 << (bits_taken - 8))
+                    + (b3 >> (16 - bits_taken)))
             } else {
                 unreachable!()
             };
@@ -100,7 +99,10 @@ impl Wallet {
             }
         }
         let res = Self::from_entropy(entropy);
-        ensure!(res.sha256sum() == overflow as u8, "checksum verification failed");
+        ensure!(
+            res.sha256sum() == overflow as u8,
+            "checksum verification failed"
+        );
         Ok(res)
     }
 
@@ -114,7 +116,14 @@ impl Wallet {
 
     pub fn from_words(words: &[String]) -> Result<Self, failure::Error> {
         let dict_vec: Vec<&'static str> = consts::DICT.to_vec();
-        let word_iter = words.into_iter().map(|s| dict_vec.binary_search(&s.as_str()).map_err(|_| format_err!("{} is not a valid bip39 word", s))).collect::<Result<Vec<usize>, failure::Error>>()?;
+        let word_iter = words
+            .into_iter()
+            .map(|s| {
+                dict_vec
+                    .binary_search(&s.as_str())
+                    .map_err(|_| format_err!("{} is not a valid bip39 word", s))
+            })
+            .collect::<Result<Vec<usize>, failure::Error>>()?;
         let mut idxs: [u16; 12] = [0; 12];
         for (idx, word_idx) in idxs.iter_mut().zip(word_iter) {
             *idx = word_idx as u16;
@@ -128,9 +137,20 @@ impl Wallet {
             None => {
                 let mut seed: [u8; 64] = [0; 64];
 
-                pbkdf2::<HmacSha512>(self.words().join(" ").as_bytes(), b"mnemonic", 2048, &mut seed);
-                self.parent = Some(ChildWallet::new(seed));
-            },
+                pbkdf2::<HmacSha512>(
+                    self.words().join(" ").as_bytes(),
+                    b"mnemonic",
+                    2048,
+                    &mut seed,
+                );
+
+                use hmac::Mac;
+                let mut mac = HmacSha512::new_varkey(b"Bitcoin seed").unwrap();
+                mac.input(&seed);
+                let mut l: [u8; 64] = [0; 64];
+                l.clone_from_slice(mac.result().code().as_slice());
+                self.parent = Some(ChildWallet::new(l));
+            }
         }
     }
 
@@ -148,7 +168,7 @@ impl Wallet {
             parent: match self.parent {
                 Some(ref a) => Some(ByteVec(a.as_bytes()?)),
                 None => None,
-            }
+            },
         })
     }
 
@@ -157,16 +177,11 @@ impl Wallet {
         entropy.clone_from_slice(&w.entropy);
 
         let parent = match w.parent {
-            Some(ByteVec(ref data)) => {
-                Some(ChildWallet::from_bytes(data)?)
-            },
+            Some(ByteVec(ref data)) => Some(ChildWallet::from_bytes(data)?),
             None => None,
         };
 
-        Ok(Wallet {
-            entropy,
-            parent,
-        })
+        Ok(Wallet { entropy, parent })
     }
 
     pub fn check_ser(&self) -> Result<(), Error> {
@@ -188,10 +203,7 @@ impl Wallet {
 }
 
 #[derive(Deserialize, Serialize)]
-struct ByteVec (
-    #[serde(with = "serde_bytes")]
-    pub Vec<u8>,
-);
+struct ByteVec(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 #[derive(Deserialize, Serialize)]
 pub struct SerializableWallet {
