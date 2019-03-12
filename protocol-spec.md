@@ -24,27 +24,38 @@ looking up the referenced output.
 #### Standard bork
 `Version (2 bytes)` `03` `Nonce (1 byte)` `<message> (0-76 bytes)`
 
-#### Reply
-`Version (2 bytes)` `04` `Nonce (1 byte)` `Reference Nonce (1 bytes)` `<message> (0-75 bytes)`
-A reply references a previous bork, by checking the address of the first non-OP_RETURN output,
+#### Comment
+`Version (2 bytes)` `04` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+
+A comment references a previous bork, by checking the address of the first P2PKH output,
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
 
-By convention, a reply to your most recent bork is seen as a continuation of it.
+#### Legacy Comment
+`Version (2 bytes)` `05` `Nonce (1 byte)` `Skip [VarInt] (1-75 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
+
+A legacy comment references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
+
+#### Extension
+`Version (2 bytes)` `06` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+
+This message type continues a previous message of any type.
 
 ### Follows/Likes
 
 #### Follow
-`Version (2 bytes)` `05` `<address to follow> (26-34 bytes)`
+`Version (2 bytes)` `07` `<address to follow> (26-34 bytes)`
 
 #### Unfollow
-`Version (2 bytes)` `06` `<address to unfollow> (26-34 bytes)`
+`Version (2 bytes)` `08` `<address to unfollow> (26-34 bytes)`
 
 #### Like
-`Version (2 bytes)` `07` `Reference Nonce (1 byte)`
+`Version (2 bytes)` `09` `Reference Nonce (1 byte)`
+
 A like references a previous bork, by checking the address of the first non-OP_RETURN output,
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
 
 #### Rebork
-`Version (2 bytes)` `08` `Reference Nonce (1 byte)`
-A rebork references a previous bork, by checking the address of the first non-OP_RETURN output,
+`Version (2 bytes)` `0A` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+
+A rebork references a previous bork, by checking the address of the first P2PKH output,
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
