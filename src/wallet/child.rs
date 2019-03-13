@@ -1,6 +1,6 @@
 use super::HmacSha512;
 use crate::big_array::BigArray;
-use crate::Bork;
+use crate::NewBork;
 use crate::Network;
 use base58::ToBase58;
 use failure::Error;

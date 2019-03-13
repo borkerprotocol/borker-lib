@@ -18,7 +18,9 @@ path = "src/main.rs"
 
 [dependencies]
 base58 = "0.1.0"
+bigdecimal = { version = "0.0.15", features = ["serde"] }
 bitcoin = "0.17.1"
+chrono = { version = "0.4.6", features = ["serde"] }
 failure = "0.1.3"
 hex = "0.3.2"
 hmac = "0.7.0"
