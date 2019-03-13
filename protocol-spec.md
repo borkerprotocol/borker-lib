@@ -43,10 +43,10 @@ This message type continues a previous message of any type.
 ### Follows/Likes
 
 #### Follow
-`Version (2 bytes)` `07` `<address to follow> (26-34 bytes)`
+`Version (2 bytes)` `07` `<address to follow> (25 bytes)`
 
 #### Unfollow
-`Version (2 bytes)` `08` `<address to unfollow> (26-34 bytes)`
+`Version (2 bytes)` `08` `<address to unfollow> (25 bytes)`
 
 #### Like
 `Version (2 bytes)` `09` `Reference Nonce (1 byte)`
