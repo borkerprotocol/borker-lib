@@ -55,7 +55,7 @@ A like references a previous bork, by checking the address of the first non-OP_R
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
 
 #### Legacy Like
-`Version (2 bytes)` `0A` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
+`Version (2 bytes)` `0A` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
 
 A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
 
