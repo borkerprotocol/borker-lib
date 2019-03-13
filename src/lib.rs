@@ -5,59 +5,52 @@ extern crate serde_derive;
 
 use failure::Error;
 use wasm_bindgen::prelude::*;
-use bigdecimal::BigDecimal;
 
 mod big_array;
 #[macro_use]
 mod macros;
+mod protocol;
 mod wallet;
 
 pub use self::wallet::{ChildWallet, Wallet};
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum BorkType {
-    Bork,
-    Reply,
-    Repost,
-    Like,
-    SetName,
-    SetBio,
-    SetAvatar,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BorkTxData {
-    timestamp: chrono::NaiveDateTime,
-    txid: String,
-    #[serde(rename = "type")]
-    bork_type: BorkType,
-    nonce: u8,
-    skip: Option<u64>,
-    reference_nonce: Option<u8>,
-    content: Option<String>,
-    value: Option<BigDecimal>,
-    fee: BigDecimal,
-    sender_address: String,
-    recipient_address: Option<String>,
-}
-
-#[derive(Deserialize)]
-pub struct NewBork {
-    #[serde(rename = "type")]
-    bork_type: BorkType,
-    skip: Option<u64>,
-    reference_nonce: Option<u8>,
-    content: Option<String>,
-    value: Option<BigDecimal>,
-    fee: BigDecimal,
-    recipient_address: Option<String>, 
-}
-
 #[wasm_bindgen]
 pub fn get_borks(block: Vec<u8>, network: Network) -> Result<Vec<JsValue>, JsValue> {
-    unimplemented!()
+    use bitcoin::consensus::encode::Decodable;
+
+    let mut cur = std::io::Cursor::new(&block);
+    let block_header: bitcoin::BlockHeader = js_try!(Decodable::consensus_decode(&mut cur));
+    match network {
+        Network::Dogecoin | Network::Litecoin if block_header.version & 1 << 8 != 0 => {
+            let _: bitcoin::Transaction = js_try!(Decodable::consensus_decode(&mut cur));
+            let pos = cur.position() + 32;
+            cur.set_position(pos);
+            let len: bitcoin::VarInt = js_try!(Decodable::consensus_decode(&mut cur));
+            let pos = cur.position() + 32 * len.0;
+            cur.set_position(pos + 4);
+
+            let len: bitcoin::VarInt = js_try!(Decodable::consensus_decode(&mut cur));
+            let pos = cur.position() + 32 * len.0;
+            cur.set_position(pos + 4);
+            let _: bitcoin::BlockHeader = js_try!(Decodable::consensus_decode(&mut cur));
+        }
+        _ => (),
+    }
+
+    let count: bitcoin::VarInt = js_try!(Decodable::consensus_decode(&mut cur));
+    let mut borks: Vec<Option<protocol::BorkTxData>> = Vec::new();
+    let timestamp = chrono::NaiveDateTime::from_timestamp(block_header.time as i64, 0);
+    for _ in 0..count.0 {
+        borks.push(
+            protocol::parse_tx(js_try!(Decodable::consensus_decode(&mut cur)), &timestamp)
+                .ok()
+                .and_then(|a| a),
+        );
+    }
+    Ok(js_try!(borks
+        .into_iter()
+        .filter_map(|a| a.map(|a| JsValue::from_serde(&a)))
+        .collect::<Result<Vec<JsValue>, _>>()))
 }
 
 // JS Wrappers

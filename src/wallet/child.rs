@@ -1,8 +1,7 @@
 use super::HmacSha512;
-use crate::big_array::BigArray;
-use crate::NewBork;
-use crate::Network;
 use base58::ToBase58;
+use crate::big_array::BigArray;
+use crate::Network;
 use failure::Error;
 use hmac::Mac;
 use ripemd160::{Digest, Ripemd160};
@@ -251,81 +250,6 @@ impl ChildWallet {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let w: SerializableChildWallet = serde_cbor::from_slice(bytes)?;
         Self::from_serializable(w)
-    }
-
-    // Data -> Vec<SignedTx>
-    pub fn bork(
-        &mut self,
-        bork: Bork,
-        fee_rate: usize,
-        network: Network,
-    ) -> Result<(Vec<Vec<u8>>, usize), Error> {
-        let mut buf_vec: Vec<Vec<u8>> = Vec::new();
-        let mut buf: Vec<u8> = Vec::new();
-        let (address, message, ats) = match bork {
-            Bork::Bork { message, ats } => {
-                buf.push(0x00);
-                buf.push(0x00);
-                buf.push(0x03);
-                buf.push(self.nonce);
-                self.nonce = self.nonce + 1;
-                (None, message, ats)
-            }
-            Bork::Reply {
-                address,
-                reference_nonce,
-                message,
-                ats,
-            } => {
-                buf.push(0x00);
-                buf.push(0x00);
-                buf.push(0x04);
-                buf.push(self.nonce);
-                self.nonce = self.nonce + 1;
-                buf.push(reference_nonce);
-                (Some(address), message, ats)
-            }
-            Bork::Rebork {
-                address,
-                reference_nonce,
-                message,
-                ats,
-            } => {
-                buf.push(0x00);
-                buf.push(0x00);
-                buf.push(0x08);
-                buf.push(self.nonce);
-                self.nonce = self.nonce + 1;
-                buf.push(reference_nonce);
-                (Some(address), message, ats)
-            }
-            Bork::Like {
-                address,
-                reference_nonce,
-            } => {
-                buf.push(0x00);
-                buf.push(0x00);
-                buf.push(0x07);
-                buf.push(reference_nonce);
-
-                (Some(address), "".to_owned(), vec![])
-            }
-        };
-        for c in message.bytes() {
-            buf.push(c);
-            if buf.len() >= 80 {
-                buf_vec.push(buf);
-                buf = Vec::new();
-                buf.push(0x00);
-                buf.push(0x00);
-                buf.push(0x04);
-                buf.push(self.nonce);
-                buf.push(self.nonce - 1);
-                self.nonce = self.nonce + 1;
-            }
-        }
-
-        Ok((Vec::new(), 0))
     }
 }
 
