@@ -31,7 +31,7 @@ A comment references a previous bork, by checking the address of the first P2PKH
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
 
 #### Legacy Comment
-`Version (2 bytes)` `05` `Nonce (1 byte)` `Skip [VarInt] (1-75 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
+`Version (2 bytes)` `05` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
 
 A legacy comment references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
 
@@ -43,10 +43,10 @@ This message type continues a previous message of any type.
 ### Follows/Likes
 
 #### Follow
-`Version (2 bytes)` `07` `<address to follow> (26-34 bytes)`
+`Version (2 bytes)` `07` `<address to follow> (25 bytes)`
 
 #### Unfollow
-`Version (2 bytes)` `08` `<address to unfollow> (26-34 bytes)`
+`Version (2 bytes)` `08` `<address to unfollow> (25 bytes)`
 
 #### Like
 `Version (2 bytes)` `09` `Reference Nonce (1 byte)`
@@ -54,8 +54,18 @@ This message type continues a previous message of any type.
 A like references a previous bork, by checking the address of the first non-OP_RETURN output,
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
 
+#### Legacy Like
+`Version (2 bytes)` `0A` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+
+A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
+
 #### Rebork
-`Version (2 bytes)` `0A` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+`Version (2 bytes)` `0B` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
 
 A rebork references a previous bork, by checking the address of the first P2PKH output,
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
+
+#### Legacy Rebork
+`Version (2 bytes)` `0C` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
+
+A legacy rebork references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
