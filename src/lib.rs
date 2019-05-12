@@ -1,3 +1,5 @@
+#![feature(slice_concat_ext)]
+
 #[macro_use]
 extern crate failure;
 #[macro_use]

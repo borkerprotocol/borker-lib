@@ -211,3 +211,17 @@ pub struct SerializableWallet {
     entropy: Vec<u8>,
     parent: Option<ByteVec>,
 }
+
+pub fn addr_to_script(addr: &str) -> Result<bitcoin::Script, Error> {
+    use bitcoin::util::base58;
+
+    let mut addr_bytes = base58::from_check(addr)?;
+    addr_bytes.remove(0);
+
+    let mut s: Vec<u8> = vec![0x76, 0xA9];
+    s.extend(addr_bytes);
+    s.push(0x88);
+    s.push(0xAC);
+
+    Ok(bitcoin::Script::from(s))
+}

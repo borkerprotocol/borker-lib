@@ -1,13 +1,15 @@
+
+use super::addr_to_script;
 use super::HmacSha512;
-use base58::ToBase58;
 use crate::big_array::BigArray;
 use crate::Network;
-use failure::Error;
+use base58::ToBase58;
 use hmac::Mac;
 use ripemd160::{Digest, Ripemd160};
 use secp256k1::curve::Scalar;
 use secp256k1::{PublicKey, SecretKey};
 use sha2::Sha256;
+use failure::Error;
 
 #[derive(Clone)]
 pub struct ChildWallet {
@@ -250,6 +252,114 @@ impl ChildWallet {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let w: SerializableChildWallet = serde_cbor::from_slice(bytes)?;
         Self::from_serializable(w)
+    }
+
+    pub fn script(&self) -> bitcoin::Script {
+        addr_to_script(&self.address(Network::Bitcoin)).unwrap()
+    }
+
+    pub fn construct_signed(
+        &self,
+        inputs: &[&[u8]],
+        outputs: &[(&str, u64)],
+        op_return: Option<&[u8]>,
+    ) -> Result<Vec<u8>, Error> {
+        use bitcoin::consensus::Decodable;
+        use bitcoin::consensus::Encodable;
+        use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
+        use bitcoin_hashes::Hash;
+        use std::io::Cursor;
+
+        let script = self.script();
+
+        let inputs = inputs
+            .into_iter()
+            .map(|i| Transaction::consensus_decode(&mut Cursor::new(i)))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flat_map(|tx| {
+                tx.output
+                    .clone()
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(_, o)| o.script_pubkey == script)
+                    .map(|(vout, o)| {
+                        (
+                            OutPoint {
+                                txid: tx.txid(),
+                                vout: vout as u32,
+                            },
+                            o,
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let input_size = inputs.iter().fold(0, |acc, tx| acc + tx.1.value);
+        let output_size = outputs.iter().fold(0, |acc, o| acc + o.1);
+        if output_size >= input_size {
+            bail!("insufficient funds")
+        }
+
+        let output = outputs
+            .into_iter()
+            .map(|(addr, val)| -> Result<_, Error> {
+                Ok(TxOut {
+                    script_pubkey: addr_to_script(addr)?,
+                    value: *val,
+                })
+            })
+            .chain(op_return.into_iter().map(|data| -> Result<_, Error> {
+                let mut s: Vec<u8> = vec![0x6a, 0x4c, data.len() as u8];
+                s.extend(data.iter());
+                Ok(TxOut {
+                    script_pubkey: bitcoin::Script::from(s),
+                    value: 0,
+                })
+            }))
+            .collect::<Result<Vec<_>, Error>>()?;
+        let input: Vec<TxIn> = inputs
+            .into_iter()
+            .map(|a| TxIn {
+                previous_output: a.0,
+                script_sig: bitcoin::Script::new(),
+                sequence: 0xFFFFFFFF_u32,
+                witness: vec![],
+            })
+            .collect();
+        let mut tx = Transaction {
+            version: 2,
+            lock_time: 0,
+            input: input.clone(),
+            output,
+        };
+        tx.input = input
+            .into_iter()
+            .enumerate()
+            .map(|(i, vin)| -> Result<_, Error> {
+                let sighash = tx.signature_hash(i, &script, 0x01).into_inner();
+                let sig = secp256k1::sign(&secp256k1::Message::parse(&sighash), self.mpriv())
+                    .map_err(|e| format_err!("{:?}", e))?
+                    .0;
+                Ok(TxIn {
+                    previous_output: vin.previous_output,
+                    script_sig: bitcoin::Script::from(
+                        [
+                            &[0x4c, 64][..],
+                            &sig.serialize()[..],
+                            &[0x4c, 33][..],
+                            &self.mpub().serialize_compressed()[..],
+                        ]
+                        .concat(),
+                    ),
+                    sequence: vin.sequence,
+                    witness: vin.witness,
+                })
+            })
+            .collect::<Result<Vec<_>, Error>>()?;
+        let mut res = Vec::new();
+        tx.consensus_encode(&mut res)?;
+        Ok(res)
     }
 }
 
