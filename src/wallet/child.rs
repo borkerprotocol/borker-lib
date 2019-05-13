@@ -346,8 +346,8 @@ impl ChildWallet {
                     script_sig: bitcoin::Script::from(
                         [
                             &[0x4c, 64][..],
-                            &sig.serialize()[..],
-                            &[0x4c, 33][..],
+                            &sig.serialize_der()[..],
+                            &[0x01, 0x4c, 33][..],
                             &self.mpub().serialize_compressed()[..],
                         ]
                         .concat(),
