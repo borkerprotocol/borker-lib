@@ -6,6 +6,7 @@ extern crate failure;
 extern crate serde_derive;
 
 use failure::Error;
+use std::convert::TryFrom;
 use wasm_bindgen::prelude::*;
 
 mod big_array;
@@ -123,13 +124,46 @@ pub struct JsChildWallet {
     inner: ChildWallet,
 }
 
-#[wasm_bindgen]
+// #[wasm_bindgen]
 impl JsChildWallet {
     pub fn address(&self, network: Network) -> String {
         self.inner.address(network)
     }
 
-    pub fn new_bork(&mut self, data: JsValue, network: Network) -> Result<Vec<u8>, JsValue> {
-        unimplemented!()
+    pub fn new_bork(
+        &mut self,
+        data: JsValue,
+        network: Network,
+        inputs: Vec<Vec<u8>>,
+    ) -> Result<Vec<Vec<u8>>, JsValue> {
+        use protocol::*;
+        let op_rets = js_try!(encode(
+            js_try!(NewBork::try_from(js_try!(data.into_serde::<NewBorkData>()))),
+            self.inner.nonce_mut(),
+            network,
+        ));
+        let mut txs = vec![];
+        let mut prev_tx: Option<Vec<u8>> = None;
+        for op_ret in op_rets {
+            let tx = js_try!(self.inner.construct_signed(
+                match prev_tx {
+                    Some(t) => vec![t.clone()],
+                    None => inputs.clone(),
+                }
+                .as_slice(),
+                &[],
+                match network {
+                    Network::Dogecoin => 100_000_000,
+                    _ => unimplemented!(),
+                },
+                Some(op_ret.as_slice()),
+                network,
+            ));
+            prev_tx = Some(tx.clone());
+            txs.push(tx);
+        }
+
+        Ok(txs)
     }
+
 }

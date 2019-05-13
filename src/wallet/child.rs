@@ -4,12 +4,13 @@ use super::HmacSha512;
 use crate::big_array::BigArray;
 use crate::Network;
 use base58::ToBase58;
+use failure::Error;
 use hmac::Mac;
-use ripemd160::{Digest, Ripemd160};
+use ripemd160::Digest;
+use ripemd160::Ripemd160;
 use secp256k1::curve::Scalar;
 use secp256k1::{PublicKey, SecretKey};
 use sha2::Sha256;
-use failure::Error;
 
 #[derive(Clone)]
 pub struct ChildWallet {
@@ -61,6 +62,14 @@ impl ChildWallet {
 
     pub fn mpub(&self) -> &PublicKey {
         self.mpub.as_ref().expect("wallet uninitialized")
+    }
+
+    pub fn nonce(&self) -> &u8 {
+        &self.nonce
+    }
+
+    pub fn nonce_mut(&mut self) -> &mut u8 {
+        &mut self.nonce
     }
 
     pub fn next_child(&mut self, hardened: bool) -> Result<&mut ChildWallet, Error> {
@@ -260,8 +269,9 @@ impl ChildWallet {
 
     pub fn construct_signed(
         &self,
-        inputs: &[&[u8]],
+        inputs: &[Vec<u8>],
         outputs: &[(&str, u64)],
+        fee: u64,
         op_return: Option<&[u8]>,
     ) -> Result<Vec<u8>, Error> {
         use bitcoin::consensus::Decodable;
@@ -297,16 +307,19 @@ impl ChildWallet {
             .collect::<Vec<_>>();
         let input_size = inputs.iter().fold(0, |acc, tx| acc + tx.1.value);
         let output_size = outputs.iter().fold(0, |acc, o| acc + o.1);
-        if output_size >= input_size {
+        if output_size >= input_size - fee {
             bail!("insufficient funds")
         }
+        let mut outputs = outputs.iter().cloned().collect::<Vec<_>>();
+        let address = self.address(Network::Bitcoin);
+        outputs.push((address.as_str(), input_size - output_size - fee));
 
         let output = outputs
             .into_iter()
             .map(|(addr, val)| -> Result<_, Error> {
                 Ok(TxOut {
                     script_pubkey: addr_to_script(addr)?,
-                    value: *val,
+                    value: val,
                 })
             })
             .chain(op_return.into_iter().map(|data| -> Result<_, Error> {
@@ -346,7 +359,7 @@ impl ChildWallet {
                     script_sig: bitcoin::Script::from(
                         [
                             &[0x4c, 64][..],
-                            &sig.serialize_der()[..],
+                            sig.serialize_der().as_ref(),
                             &[0x01, 0x4c, 33][..],
                             &self.mpub().serialize_compressed()[..],
                         ]
