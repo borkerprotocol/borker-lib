@@ -27,7 +27,7 @@ looking up the referenced output.
 #### Comment
 `Version (2 bytes)` `04` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
 
-A comment references a previous bork, by checking the address of the first P2PKH output,
+A comment references a previous bork, by checking the address of the first P2PKH, non-change, output,
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
 
 #### Legacy Comment
@@ -35,37 +35,53 @@ and references the most recent bork posted by that user with a nonce equal to th
 
 A legacy comment references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
 
-#### Extension
-`Version (2 bytes)` `06` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
-
-This message type continues a previous message of any type.
-
-### Follows/Likes
-
-#### Follow
-`Version (2 bytes)` `07` `<address to follow> (25 bytes)`
-
-#### Unfollow
-`Version (2 bytes)` `08` `<address to unfollow> (25 bytes)`
-
-#### Like
-`Version (2 bytes)` `09` `Reference Nonce (1 byte)`
-
-A like references a previous bork, by checking the address of the first non-OP_RETURN output,
-and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
-
-#### Legacy Like
-`Version (2 bytes)` `0A` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
-
-A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
-
 #### Rebork
-`Version (2 bytes)` `0B` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+`Version (2 bytes)` `06` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
 
 A rebork references a previous bork, by checking the address of the first P2PKH output,
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
 
 #### Legacy Rebork
-`Version (2 bytes)` `0C` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
+`Version (2 bytes)` `07` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
 
 A legacy rebork references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
+
+#### Like
+`Version (2 bytes)` `08` `Reference Nonce (1 byte)`
+
+A like references a previous bork, by checking the address of the first non-OP_RETURN output,
+and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
+
+#### Legacy Like
+`Version (2 bytes)` `09` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+
+A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
+
+#### Extension
+`Version (2 bytes)` `0A` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+
+This message type continues a previous message of types bork, comment, legacy comment, rebork, and legacy rebork.
+
+### Follows/Blocks/Flags
+
+#### Follow
+`Version (2 bytes)` `0C` `<address to follow> (25 bytes)`
+
+#### Unfollow
+`Version (2 bytes)` `0D` `<address to unfollow> (25 bytes)`
+
+#### Block
+`Version (2 bytes)` `0E` `<address to follow> (25 bytes)`
+
+Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, and all the rest.
+
+#### Unblock
+`Version (2 bytes)` `0F` `<address to unfollow> (25 bytes)`
+
+#### Flag
+`Version (2 bytes)` `0G` `<txid to flag> (64 bytes)`
+
+Flagging a bork, comment, or rebork marks it as inappropriate.
+
+#### Unflag
+`Version (2 bytes)` `0H` `<txid to unflag> (64 bytes)`
