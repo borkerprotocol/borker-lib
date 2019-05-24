@@ -1,5 +1,6 @@
-use bigdecimal::BigDecimal;
+
 use crate::Network;
+use bigdecimal::BigDecimal;
 use failure::Error;
 use std::io::Write;
 
@@ -302,7 +303,7 @@ pub fn encode(bork: NewBork, nonce: &mut u8, network: Network) -> Result<Vec<Vec
         }
     };
     if let Some(content) = content {
-        let remaining = 80 - buf.len();
+        let remaining = (80 - buf.len()).min(content.len());
         buf.write(&content[..remaining])?;
         for c in content[remaining..].chunks(75) {
             buf_vec.push(buf);
@@ -315,6 +316,7 @@ pub fn encode(bork: NewBork, nonce: &mut u8, network: Network) -> Result<Vec<Vec
             *nonce += 1;
             buf.write(&c)?;
         }
+        buf_vec.push(buf);
     }
 
     Ok(buf_vec)

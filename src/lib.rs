@@ -124,7 +124,7 @@ pub struct JsChildWallet {
     inner: ChildWallet,
 }
 
-// #[wasm_bindgen]
+#[wasm_bindgen]
 impl JsChildWallet {
     pub fn address(&self, network: Network) -> String {
         self.inner.address(network)
@@ -134,9 +134,16 @@ impl JsChildWallet {
         &mut self,
         data: JsValue,
         network: Network,
-        inputs: Vec<Vec<u8>>,
-    ) -> Result<Vec<Vec<u8>>, JsValue> {
+        inputs: JsValue,
+    ) -> Result<JsValue, JsValue> {
         use protocol::*;
+
+        let inputs = js_try!(inputs.into_serde::<Vec<String>>());
+        let inputs = js_try!(inputs
+            .into_iter()
+            .map(|i| hex::decode(i))
+            .collect::<Result<Vec<_>, _>>());
+
         let op_rets = js_try!(encode(
             js_try!(NewBork::try_from(js_try!(data.into_serde::<NewBorkData>()))),
             self.inner.nonce_mut(),
@@ -157,13 +164,13 @@ impl JsChildWallet {
                     _ => unimplemented!(),
                 },
                 Some(op_ret.as_slice()),
-                network,
             ));
             prev_tx = Some(tx.clone());
             txs.push(tx);
         }
+        let txs = txs.into_iter().map(|t| hex::encode(t)).collect::<Vec<String>>();
 
-        Ok(txs)
+        Ok(js_try!(JsValue::from_serde(&txs)))
     }
 
 }

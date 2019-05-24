@@ -307,7 +307,7 @@ impl ChildWallet {
             .collect::<Vec<_>>();
         let input_size = inputs.iter().fold(0, |acc, tx| acc + tx.1.value);
         let output_size = outputs.iter().fold(0, |acc, o| acc + o.1);
-        if output_size >= input_size - fee {
+        if output_size >= input_size - fee || input_size < fee {
             bail!("insufficient funds")
         }
         let mut outputs = outputs.iter().cloned().collect::<Vec<_>>();
