@@ -67,6 +67,7 @@ pub struct JsWallet {
 impl JsWallet {
     #[wasm_bindgen(constructor)]
     pub fn new(words: Option<Vec<JsValue>>) -> Result<JsWallet, JsValue> {
+        console_error_panic_hook::set_once();
         Ok(match words {
             Some(w) => JsWallet {
                 inner: js_try!(Wallet::from_words(&js_try!(w
@@ -161,6 +162,7 @@ impl JsChildWallet {
                 &[],
                 match network {
                     Network::Dogecoin => 100_000_000,
+                    Network::Bitcoin => 400,
                     _ => unimplemented!(),
                 },
                 Some(op_ret.as_slice()),
@@ -168,7 +170,10 @@ impl JsChildWallet {
             prev_tx = Some(tx.clone());
             txs.push(tx);
         }
-        let txs = txs.into_iter().map(|t| hex::encode(t)).collect::<Vec<String>>();
+        let txs = txs
+            .into_iter()
+            .map(|t| hex::encode(t))
+            .collect::<Vec<String>>();
 
         Ok(js_try!(JsValue::from_serde(&txs)))
     }

@@ -163,7 +163,7 @@ impl ChildWallet {
         let version_byte: u8 = match network {
             Network::Dogecoin => 0x1E,
             Network::Litecoin => 0x30,
-            Network::Bitcoin => 0x00,
+            Network::Bitcoin => 0x6F,
         };
 
         let mut addr_bytes: Vec<u8> = vec![version_byte];
@@ -292,7 +292,19 @@ impl ChildWallet {
                     .clone()
                     .into_iter()
                     .enumerate()
-                    .filter(|(_, o)| o.script_pubkey == script)
+                    .filter(|(i, o)| {
+                        if o.script_pubkey == script {
+                            true
+                        } else if i == &1 {
+                            panic!(
+                                "\n{:?}\n{:?}",
+                                o.script_pubkey.as_bytes(),
+                                script.as_bytes()
+                            )
+                        } else {
+                            false
+                        }
+                    })
                     .map(|(vout, o)| {
                         (
                             OutPoint {
@@ -354,17 +366,20 @@ impl ChildWallet {
                 let sig = secp256k1::sign(&secp256k1::Message::parse(&sighash), self.mpriv())
                     .map_err(|e| format_err!("{:?}", e))?
                     .0;
+                let pubkey = self.mpub().serialize_compressed();
+                let sig_der = sig.serialize_der();
+                let script_sig = bitcoin::Script::from(
+                    [
+                        &[sig_der.as_ref().len() as u8 + 1][..],
+                        sig_der.as_ref(),
+                        &[0x01, pubkey.len() as u8][..],
+                        &pubkey[..],
+                    ]
+                    .concat(),
+                );
                 Ok(TxIn {
                     previous_output: vin.previous_output,
-                    script_sig: bitcoin::Script::from(
-                        [
-                            &[0x4c, 64][..],
-                            sig.serialize_der().as_ref(),
-                            &[0x01, 0x4c, 33][..],
-                            &self.mpub().serialize_compressed()[..],
-                        ]
-                        .concat(),
-                    ),
+                    script_sig,
                     sequence: vin.sequence,
                     witness: vin.witness,
                 })
