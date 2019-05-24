@@ -73,7 +73,7 @@ This message type continues a previous message of types bork, comment, legacy co
 #### Block
 `Version (2 bytes)` `0E` `<address to follow> (25 bytes)`
 
-Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, and all the rest.
+Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, reborks, and extensions.
 
 #### Unblock
 `Version (2 bytes)` `0F` `<address to unfollow> (25 bytes)`
