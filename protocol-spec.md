@@ -10,13 +10,15 @@ looking up the referenced output.
 
 ## Message Types
 
-### Nickname Declaration
+### Profile Updates
+
+#### Nickname
 `Version (2 bytes)` `00` `<utf-8 encoded nickname> (0-77 bytes)`
 
-### Biography Declaration
+#### Biography
 `Version (2 bytes)` `01` `<biography> (0-77 bytes)`
 
-### Avatar Declaration
+#### Avatar
 `Version (2 bytes)` `02` `<link to avatar image> (0-77 bytes)`
 
 ### Borks
@@ -49,36 +51,48 @@ A legacy rebork references a previous bork that is at least 256 messages old. It
 #### Extension
 `Version (2 bytes)` `08` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
 
+#### Deleting a bork
+
+`Version (2 bytes)` `09` `<txid to delete> (64 bytes)`
+
 This message type continues a previous message of types bork, comment, legacy comment, rebork, and legacy rebork.
 
+### Likes/Flags
+
 #### Like
-`Version (2 bytes)` `09` `Reference Nonce (1 byte)`
+`Version (2 bytes)` `0A` `Reference Nonce (1 byte)`
 
 A like references a previous bork, by checking the address of the first non-OP_RETURN output,
 and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
 
 #### Legacy Like
-`Version (2 bytes)` `0A` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)`
+`Version (2 bytes)` `0B` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)`
 
 A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
 
+#### Unlike
+`Version (2 bytes)` `0C` `<txid to unlike> (64 bytes)`
+
 #### Flag
-`Version (2 bytes)` `0B` `<txid to flag> (64 bytes)`
+`Version (2 bytes)` `0D` `<txid to flag> (64 bytes)`
 
 A flag marks a bork as inappropriate.
+
+#### Unflag
+`Version (2 bytes)` `0E` `<txid to unflag> (64 bytes)`
 
 ### Follows/Blocks
 
 #### Follow
-`Version (2 bytes)` `0C` `<address to follow> (25 bytes)`
+`Version (2 bytes)` `0F` `<address to follow> (25 bytes)`
+
+#### Unfollow
+`Version (2 bytes)` `0G` `<address to unfollow> (25 bytes)`
 
 #### Block
-`Version (2 bytes)` `0D` `<address to follow> (25 bytes)`
+`Version (2 bytes)` `0H` `<address to block> (25 bytes)`
 
 Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, reborks, and extensions.
 
-### Deleting
-
-You can delete any previous message.
-
-`Version (2 bytes)` `0E` `<txid to delete> (64 bytes)`
+#### Unblock
+`Version (2 bytes)` `0I` `<address to unblock> (25 bytes)`
