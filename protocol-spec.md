@@ -70,27 +70,30 @@ and references the most recent bork posted by that user with a nonce equal to th
 
 A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
 
+#### Unlike
+`Version (2 bytes)` `0C` `<txid to unlike> (64 bytes)`
+
 #### Flag
 
-`Version (2 bytes)` `0C` `<txid to flag> (64 bytes)`
+`Version (2 bytes)` `0D` `<txid to flag> (64 bytes)`
 
 A flag marks a bork as inappropriate.
 
 #### Unflag
-`Version (2 bytes)` `0D` `<txid to unflag> (64 bytes)`
+`Version (2 bytes)` `0E` `<txid to unflag> (64 bytes)`
 
 ### Following/Blocking
 
 #### Follow
-`Version (2 bytes)` `0E` `<address to follow> (25 bytes)`
+`Version (2 bytes)` `0F` `<address to follow> (25 bytes)`
 
 #### Unfollow
-`Version (2 bytes)` `0F` `<address to unfollow> (25 bytes)`
+`Version (2 bytes)` `0G` `<address to unfollow> (25 bytes)`
 
 #### Block
-`Version (2 bytes)` `0G` `<address to block> (25 bytes)`
+`Version (2 bytes)` `0H` `<address to block> (25 bytes)`
 
 Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, reborks, and extensions.
 
 #### Unblock
-`Version (2 bytes)` `0H` `<address to unblock> (25 bytes)`
+`Version (2 bytes)` `0I` `<address to unblock> (25 bytes)`
