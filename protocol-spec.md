@@ -37,13 +37,13 @@ and references the most recent bork posted by that user with a nonce equal to th
 
 A legacy comment references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
 
-#### Like
+#### Rebork
 `Version (2 bytes)` `06` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
 
-A like references a previous bork, by checking the address of the first P2PKH output,
-and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
+A rebork references a previous bork, by checking the address of the first P2PKH output,
+and references the most recent bork posted by that user with a nonce equal to the provided reference nonce. Includes an optional message.
 
-#### Legacy Like
+#### Legacy Rebork
 `Version (2 bytes)` `07` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
 
 A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
@@ -57,29 +57,40 @@ This message type continues a previous message of types bork, comment, legacy co
 
 `Version (2 bytes)` `09` `<txid to delete> (64 bytes)`
 
-### Flagging
+### Liking/Flagging
+
+#### Like
+`Version (2 bytes)` `0A` `Nonce (1 byte)` `Reference Nonce (1 byte)`
+
+A like references a previous bork, by checking the address of the first P2PKH output,
+and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
+
+#### Legacy Like
+`Version (2 bytes)` `0B` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)`
+
+A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
 
 #### Flag
 
-`Version (2 bytes)` `0A` `<txid to flag> (64 bytes)`
+`Version (2 bytes)` `0C` `<txid to flag> (64 bytes)`
 
 A flag marks a bork as inappropriate.
 
 #### Unflag
-`Version (2 bytes)` `0B` `<txid to unflag> (64 bytes)`
+`Version (2 bytes)` `0D` `<txid to unflag> (64 bytes)`
 
 ### Following/Blocking
 
 #### Follow
-`Version (2 bytes)` `0C` `<address to follow> (25 bytes)`
+`Version (2 bytes)` `0E` `<address to follow> (25 bytes)`
 
 #### Unfollow
-`Version (2 bytes)` `0D` `<address to unfollow> (25 bytes)`
+`Version (2 bytes)` `0F` `<address to unfollow> (25 bytes)`
 
 #### Block
-`Version (2 bytes)` `0E` `<address to block> (25 bytes)`
+`Version (2 bytes)` `0G` `<address to block> (25 bytes)`
 
 Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, reborks, and extensions.
 
 #### Unblock
-`Version (2 bytes)` `0F` `<address to unblock> (25 bytes)`
+`Version (2 bytes)` `0H` `<address to unblock> (25 bytes)`
