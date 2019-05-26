@@ -55,7 +55,7 @@ This message type continues a previous message of types bork, comment, legacy co
 
 #### Deleting a bork
 
-`Version (2 bytes)` `09` `<txid to delete> (64 bytes)`
+`Version (2 bytes)` `09` `<txid to delete> (32 bytes)`
 
 ### Liking/Flagging
 
@@ -71,16 +71,16 @@ and references the most recent bork posted by that user with a nonce equal to th
 A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
 
 #### Unlike
-`Version (2 bytes)` `0C` `<txid to unlike> (64 bytes)`
+`Version (2 bytes)` `0C` `<txid to unlike> (32 bytes)`
 
 #### Flag
 
-`Version (2 bytes)` `0D` `<txid to flag> (64 bytes)`
+`Version (2 bytes)` `0D` `<txid to flag> (32 bytes)`
 
 A flag marks a bork as inappropriate.
 
 #### Unflag
-`Version (2 bytes)` `0E` `<txid to unflag> (64 bytes)`
+`Version (2 bytes)` `0E` `<txid to unflag> (32 bytes)`
 
 ### Following/Blocking
 
