@@ -17,8 +17,15 @@ mod wallet;
 
 pub use self::wallet::{ChildWallet, Wallet};
 
+#[derive(Serialize)]
+pub struct BlockData<'a> {
+    borks: Vec<protocol::BorkTxData<'a>>,
+    spent: Vec<protocol::UtxoId>,
+    created: Vec<protocol::NewUtxo<'a>>,
+}
+
 #[wasm_bindgen]
-pub fn get_borks(block: Vec<u8>, network: Network) -> Result<Vec<JsValue>, JsValue> {
+pub fn process_block(block: String, network: Network) -> Result<JsValue, JsValue> {
     use bitcoin::consensus::encode::Decodable;
 
     let mut cur = std::io::Cursor::new(&block);
@@ -41,19 +48,25 @@ pub fn get_borks(block: Vec<u8>, network: Network) -> Result<Vec<JsValue>, JsVal
     }
 
     let count: bitcoin::VarInt = js_try!(Decodable::consensus_decode(&mut cur));
-    let mut borks: Vec<Option<protocol::BorkTxData>> = Vec::new();
-    let timestamp = chrono::NaiveDateTime::from_timestamp(block_header.time as i64, 0);
+    let timestamp = chrono::DateTime::from_utc(
+        chrono::NaiveDateTime::from_timestamp(block_header.time as i64, 0),
+        chrono::Utc,
+    );
+    let mut block_data = BlockData {
+        borks: Vec::new(),
+        spent: Vec::new(),
+        created: Vec::new(),
+    };
     for _ in 0..count.0 {
-        borks.push(
-            protocol::parse_tx(js_try!(Decodable::consensus_decode(&mut cur)), &timestamp)
-                .ok()
-                .and_then(|a| a),
-        );
+        let (bork, spent, created) =
+            protocol::parse_tx(js_try!(Decodable::consensus_decode(&mut cur)), &timestamp);
+        if let Some(bork) = bork {
+            block_data.borks.push(bork);
+        }
+        block_data.spent.extend(spent);
+        block_data.created.extend(created);
     }
-    Ok(js_try!(borks
-        .into_iter()
-        .filter_map(|a| a.map(|a| JsValue::from_serde(&a)))
-        .collect::<Result<Vec<JsValue>, _>>()))
+    Ok(js_try!(JsValue::from_serde(&block_data)))
 }
 
 // JS Wrappers
@@ -134,8 +147,8 @@ impl JsChildWallet {
     pub fn new_bork(
         &mut self,
         data: JsValue,
-        network: Network,
         inputs: JsValue,
+        fee: u64,
     ) -> Result<JsValue, JsValue> {
         use protocol::*;
 
@@ -148,7 +161,6 @@ impl JsChildWallet {
         let op_rets = js_try!(encode(
             js_try!(NewBork::try_from(js_try!(data.into_serde::<NewBorkData>()))),
             self.inner.nonce_mut(),
-            network,
         ));
         let mut txs = vec![];
         let mut prev_tx: Option<Vec<u8>> = None;
@@ -160,11 +172,7 @@ impl JsChildWallet {
                 }
                 .as_slice(),
                 &[],
-                match network {
-                    Network::Dogecoin => 100_000_000,
-                    Network::Bitcoin => 400,
-                    _ => unimplemented!(),
-                },
+                fee,
                 Some(op_ret.as_slice()),
             ));
             prev_tx = Some(tx.clone());

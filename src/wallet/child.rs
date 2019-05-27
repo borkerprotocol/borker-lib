@@ -292,19 +292,7 @@ impl ChildWallet {
                     .clone()
                     .into_iter()
                     .enumerate()
-                    .filter(|(i, o)| {
-                        if o.script_pubkey == script {
-                            true
-                        } else if i == &1 {
-                            panic!(
-                                "\n{:?}\n{:?}",
-                                o.script_pubkey.as_bytes(),
-                                script.as_bytes()
-                            )
-                        } else {
-                            false
-                        }
-                    })
+                    .filter(|(_, o)| o.script_pubkey == script)
                     .map(|(vout, o)| {
                         (
                             OutPoint {

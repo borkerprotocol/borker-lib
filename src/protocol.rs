@@ -4,27 +4,51 @@ use bigdecimal::BigDecimal;
 use failure::Error;
 use std::io::Write;
 
-pub const MAGIC: [u8; 2] = [0x00, 0x00];
+use chrono::DateTime;
+use chrono::Utc;
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum BorkType {
-    Bork,
-    Reply,
-    Extension,
-    Rebork,
-    Like,
-    Follow,
-    Unfollow,
-    SetName,
-    SetBio,
-    SetAvatar,
+pub const MAGIC: [u8; 2] = [0xD0, 0x6E];
+
+#[derive(Serialize)]
+pub struct UtxoId {
+    txid: String,
+    index: u32,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct BorkTxData {
-    timestamp: chrono::NaiveDateTime,
+pub struct NewUtxo<'a> {
+    txid: String,
+    index: u32,
+    created_at: &'a DateTime<Utc>,
+    address: String,
+    value: u64,
+    raw: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BorkType {
+    SetName,
+    SetBio,
+    SetAvatar,
+    Bork,
+    Comment,
+    Extension,
+    Delete,
+    Wag,
+    Flag,
+    Unflag,
+    Follow,
+    Unfollow,
+    Block,
+    Unblock,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BorkTxData<'a> {
+    time: &'a DateTime<Utc>,
     txid: String,
     #[serde(rename = "type")]
     bork_type: BorkType,
@@ -36,6 +60,7 @@ pub struct BorkTxData {
     fee: BigDecimal,
     sender_address: String,
     recipient_address: Option<String>,
+    mentions: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -51,7 +76,7 @@ pub enum NewBork {
     Bork {
         content: String,
     },
-    Reply {
+    Comment {
         skip: Option<u64>,
         reference_nonce: u8,
         content: String,
@@ -60,11 +85,10 @@ pub enum NewBork {
         reference_nonce: u8,
         content: String,
     },
-    Rebork {
-        skip: Option<u64>,
-        reference_nonce: u8,
+    Delete {
+        txid: Vec<u8>,
     },
-    Like {
+    Wag {
         skip: Option<u64>,
         reference_nonce: u8,
     },
@@ -74,46 +98,16 @@ pub enum NewBork {
     Unfollow {
         address: Vec<u8>,
     },
-    SetName {
-        content: String,
+    Flag {
+        txid: Vec<u8>,
     },
-    SetBio {
-        content: String,
+    Unflag {
+        txid: Vec<u8>,
     },
-    SetAvatar {
-        content: String,
-    },
-}
-
-pub enum Bork {
-    Bork {
-        nonce: u8,
-        content: String,
-    },
-    Reply {
-        nonce: u8,
-        skip: Option<u64>,
-        reference_nonce: u8,
-        content: String,
-    },
-    Extension {
-        nonce: u8,
-        reference_nonce: u8,
-        content: String,
-    },
-    Rebork {
-        nonce: u8,
-        skip: Option<u64>,
-        reference_nonce: u8,
-    },
-    Like {
-        skip: Option<u64>,
-        reference_nonce: u8,
-    },
-    Follow {
+    Block {
         address: Vec<u8>,
     },
-    Unfollow {
+    Unblock {
         address: Vec<u8>,
     },
     SetName {
@@ -195,7 +189,7 @@ impl std::convert::TryFrom<NewBorkData> for NewBork {
     }
 }
 
-pub fn encode(bork: NewBork, nonce: &mut u8, network: Network) -> Result<Vec<Vec<u8>>, Error> {
+pub fn encode(bork: NewBork, nonce: &mut u8) -> Result<Vec<Vec<u8>>, Error> {
     let mut buf_vec: Vec<Vec<u8>> = Vec::new();
     let mut buf: Vec<u8> = Vec::new();
     buf.push(MAGIC[0]);
@@ -322,7 +316,12 @@ pub fn encode(bork: NewBork, nonce: &mut u8, network: Network) -> Result<Vec<Vec
     Ok(buf_vec)
 }
 
-pub fn decode(data: &[u8]) -> Result<Option<Bork>, Error> {
+pub fn decode<'a>(
+    data: &[u8],
+    out_addrs: &[String],
+    from: String,
+    time: &'a DateTime<Utc>,
+) -> Result<Option<BorkTxData<'a>>, Error> {
     if data[0] != MAGIC[0] || data[1] != MAGIC[1] {
         return Ok(None);
     }
@@ -331,9 +330,59 @@ pub fn decode(data: &[u8]) -> Result<Option<Bork>, Error> {
     unimplemented!()
 }
 
-pub fn parse_tx(
+pub fn parse_tx<'a>(
     tx: bitcoin::Transaction,
-    time: &chrono::NaiveDateTime,
-) -> Result<Option<BorkTxData>, Error> {
-    unimplemented!()
+    time: &'a DateTime<Utc>,
+) -> (Option<BorkTxData<'a>>, Vec<UtxoId>, Vec<NewUtxo<'a>>) {
+    use bitcoin::consensus::Encodable;
+
+    let mut tx_data: Vec<u8> = Vec::new();
+    tx.consensus_encode(&mut tx_data).unwrap();
+    let tx_hex = hex::encode(tx_data);
+    let txid = format!("{:x}", tx.txid());
+    let mut op_ret = None;
+    let mut spent = Vec::new();
+    let mut created = Vec::new();
+    for (idx, o) in tx.output.iter().enumerate() {
+        if o.script_pubkey.is_p2pkh() {
+            created.push(NewUtxo {
+                txid: txid.clone(),
+                index: idx as u32,
+                address: crate::wallet::script_to_addr(&o.script_pubkey).unwrap(),
+                value: o.value,
+                created_at: time,
+                raw: tx_hex.clone(),
+            });
+        } else if o.script_pubkey.is_op_return() {
+            let b = o.script_pubkey.as_bytes();
+            match b[1] {
+                0x4c => op_ret = Some(&b[3..]),
+                0x4d => op_ret = Some(&b[4..]),
+                0x4e => op_ret = Some(&b[6..]),
+                _ => op_ret = Some(&b[2..]),
+            };
+        }
+    }
+    for (idx, i) in tx.input.into_iter().enumerate() {
+        spent.push(UtxoId {
+            txid: format!("{:x}", i.previous_output.txid),
+            index: idx as u32,
+        });
+    }
+
+    let bork = op_ret.and_then(|data| {
+        decode(
+            data,
+            &created
+                .iter()
+                .map(|c| c.address.clone())
+                .collect::<Vec<_>>(),
+            String::new(),
+            time,
+        )
+        .ok()
+        .and_then(|a| a)
+    });
+
+    (bork, spent, created)
 }

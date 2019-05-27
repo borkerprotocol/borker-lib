@@ -225,3 +225,7 @@ pub fn addr_to_script(addr: &str) -> Result<bitcoin::Script, Error> {
 
     Ok(bitcoin::Script::from(s))
 }
+
+pub fn script_to_addr(script: &bitcoin::Script) -> Result<String, Error> {
+    unimplemented!()
+}
