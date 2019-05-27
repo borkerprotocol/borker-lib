@@ -18,8 +18,9 @@ mod wallet;
 pub use self::wallet::{ChildWallet, Wallet};
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BlockData<'a> {
-    borks: Vec<protocol::BorkTxData<'a>>,
+    borker_txs: Vec<protocol::BorkTxData<'a>>,
     spent: Vec<protocol::UtxoId>,
     created: Vec<protocol::NewUtxo<'a>>,
 }

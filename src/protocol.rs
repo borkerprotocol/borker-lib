@@ -34,6 +34,7 @@ pub enum BorkType {
     SetAvatar,
     Bork,
     Comment,
+    Rebork,
     Extension,
     Delete,
     Wag,
@@ -52,12 +53,10 @@ pub struct BorkTxData<'a> {
     txid: String,
     #[serde(rename = "type")]
     bork_type: BorkType,
-    nonce: u8,
+    nonce: Option<u8>,
     skip: Option<u64>,
     reference_nonce: Option<u8>,
     content: Option<String>,
-    value: Option<BigDecimal>,
-    fee: BigDecimal,
     sender_address: String,
     recipient_address: Option<String>,
     mentions: Vec<String>,
@@ -78,8 +77,11 @@ pub enum NewBork {
     },
     Comment {
         skip: Option<u64>,
-        reference_nonce: u8,
+        reference_id: Vec<u8>,
         content: String,
+    },
+    Rebork {
+
     },
     Extension {
         reference_nonce: u8,

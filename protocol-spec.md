@@ -13,7 +13,7 @@ looking up the referenced output.
 ### Identifying
 
 #### Nickname
-`Version (2 bytes)` `00` `<utf-8 encoded nickname> (0-77 bytes)`
+`Version (2 bytes)` `00` `<nickname> (0-77 bytes)`
 
 #### Biography
 `Version (2 bytes)` `01` `<biography> (0-77 bytes)`
@@ -27,73 +27,64 @@ looking up the referenced output.
 `Version (2 bytes)` `03` `Nonce (1 byte)` `<message> (0-76 bytes)`
 
 #### Comment
-`Version (2 bytes)` `04` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+`Version (2 bytes)` `04` `Nonce (1 byte)` `Ref (VarString 2-33 bytes)` `<message> (0-74 bytes)`
 
 A comment references a previous bork, by checking the address of the first P2PKH, non-change, output,
-and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
-
-#### Legacy Comment
-`Version (2 bytes)` `05` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
-
-A legacy comment references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
+and references the most recent bork posted by that user with a txid with the same prefix as the provided `Ref` string.
 
 #### Rebork
-`Version (2 bytes)` `06` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+`Version (2 bytes)` `05` `Nonce (1 byte)` `Ref (VarString 2-33 bytes)` `<message> (0-74 bytes)`
 
 A rebork references a previous bork, by checking the address of the first P2PKH output,
-and references the most recent bork posted by that user with a nonce equal to the provided reference nonce. Includes an optional message.
-
-#### Legacy Rebork
-`Version (2 bytes)` `07` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)` `<message> (0-74 bytes)`
-
-A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
+and references the most recent bork posted by that user with a txid with the same prefix as the provided `Ref` string. Includes an optional message.
 
 #### Extension
-`Version (2 bytes)` `08` `Nonce (1 byte)` `Reference Nonce (1 byte)` `<message> (0-75 bytes)`
+`Version (2 bytes)` `06` `Nonce (1 byte)` `Index (1 byte)` `<message> (0-75 bytes)`
 
-This message type continues a previous message of types bork, comment, legacy comment, rebork, and legacy rebork.
+This message type continues a previous message of types bork, comment, legacy comment, rebork, and legacy rebork. It is a continuation of the most recent message with the same nonce.
 
 #### Deleting a bork
 
-`Version (2 bytes)` `09` `<txid to delete> (32 bytes)`
+`Version (2 bytes)` `07` `Ref (VarString 2-33 bytes)`
+
+Deletes a previous message, referred to by the most recent bork from the same address with a txid with the same prefix as the provided `Ref` string.
 
 ### Liking/Flagging
 
 #### Like
-`Version (2 bytes)` `0A` `Nonce (1 byte)` `Reference Nonce (1 byte)`
+`Version (2 bytes)` `08` `Ref (VarString 2-33 bytes)`
 
 A like references a previous bork, by checking the address of the first P2PKH output,
-and references the most recent bork posted by that user with a nonce equal to the provided reference nonce.
-
-#### Legacy Like
-`Version (2 bytes)` `0B` `Nonce (1 byte)` `Skip [VarInt] (1-9 bytes)` `Reference Nonce (1 byte)`
-
-A legacy like references a previous bork that is at least 256 messages old. It includes a varint indicating how many messages with the provided reference nonce to skip, going backwards.
+and references the most recent bork posted by that user with the most recent txid with the same prefix as the provided `Ref` string.
 
 #### Unlike
-`Version (2 bytes)` `0C` `<txid to unlike> (32 bytes)`
+`Version (2 bytes)` `09` `<txid to unlike> (32 bytes)`
+
+Removes a like from a previous bork, by txid.
 
 #### Flag
 
-`Version (2 bytes)` `0D` `<txid to flag> (32 bytes)`
+`Version (2 bytes)` `0A` `<txid to flag> (32 bytes)`
 
 A flag marks a bork as inappropriate.
 
 #### Unflag
-`Version (2 bytes)` `0E` `<txid to unflag> (32 bytes)`
+`Version (2 bytes)` `0B` `<txid to unflag> (32 bytes)`
+
+Removes a flag from a previous bork, by txid.
 
 ### Following/Blocking
 
 #### Follow
-`Version (2 bytes)` `0F` `<address to follow> (25 bytes)`
+`Version (2 bytes)` `0C` `<pubkey hash to follow> (20 bytes)`
 
 #### Unfollow
-`Version (2 bytes)` `0G` `<address to unfollow> (25 bytes)`
+`Version (2 bytes)` `0D` `<pubkey hash to unfollow> (20 bytes)`
 
 #### Block
-`Version (2 bytes)` `0H` `<address to block> (25 bytes)`
+`Version (2 bytes)` `0E` `<pubkey hash to block> (20 bytes)`
 
-Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, reborks, and extensions.
+Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, reborks, and extensions. (This is only enforced client side).
 
 #### Unblock
-`Version (2 bytes)` `0I` `<address to unblock> (25 bytes)`
+`Version (2 bytes)` `0F` `<pubkey hash to unblock> (20 bytes)`
