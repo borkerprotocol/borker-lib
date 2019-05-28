@@ -30,7 +30,7 @@ export interface BorkTxData {
   content: string | null,
   senderAddress: string,
   recipientAddress: string | null,
-  mentions: [string],
+  mentions: string[],
 }
 
 export interface UtxoId {
@@ -47,15 +47,20 @@ export interface NewUtxo {
 }
 
 export interface BlockData {
-  borkerTxs: [BorkTxData],
-  spent: [UtxoId],
-  created: [NewUtxo],
+  borkerTxs: BorkTxData[],
+  spent: UtxoId[],
+  created: NewUtxo[],
 }
 
 export interface NewBorkData {
   type: BorkType,
   content?: string | null,
   referenceId?: string | null,
+}
+
+export interface Output {
+  address: string,
+  value: number,
 }
 
 export class JsWallet {
@@ -86,6 +91,6 @@ export class JsChildWallet {
 
   address(network: Network): string;
 
-  newBork(data: NewBorkData, inputs: [string], outputs: [Output], fee: bigint)
+  newBork(data: NewBorkData, inputs: string[], outputs: Output[], fee: bigint)
 
 }
