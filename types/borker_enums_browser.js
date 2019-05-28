@@ -1,0 +1,1 @@
+export const BorkType = Object.freeze({ SetName: 'set_name', SetBio: 'set_bio', SetAvatar: 'set_avatar', Bork: 'bork', Comment: 'comment', Rebork: 'rebork', Extension: 'extension', Delete: 'delete', Like: 'like', Unlike: 'unlike', Flag: 'flag', Unflag: 'unflag', Follow: 'follow', Unfollow: 'unfollow', Block: 'block', Unblock: 'unblock' });
