@@ -1,9 +1,15 @@
 mod child;
 mod consts;
 
+
 pub use self::child::ChildWallet;
+use crate::Network;
+use base58::ToBase58;
 use failure::Error;
 use pbkdf2::pbkdf2;
+use ripemd160::Digest;
+use ripemd160::Ripemd160;
+use sha2::Sha256;
 
 pub type HmacSha512 = hmac::Hmac<sha2::Sha512>;
 
@@ -40,8 +46,6 @@ impl Wallet {
     }
 
     fn sha256sum(&self) -> u8 {
-        use sha2::{Digest, Sha256};
-
         let mut hasher = Sha256::new();
         hasher.input(self.entropy());
         let result = hasher.result();
@@ -226,6 +230,56 @@ pub fn addr_to_script(addr: &str) -> Result<bitcoin::Script, Error> {
     Ok(bitcoin::Script::from(s))
 }
 
-pub fn script_to_addr(script: &bitcoin::Script) -> Result<String, Error> {
-    unimplemented!()
+pub fn script_to_addr(script: &bitcoin::Script, network: Network) -> Result<String, Error> {
+    if !script.is_p2pkh() {
+        bail!("not p2pkh");
+    }
+    let mut script = script.iter(true);
+    script.next();
+    script.next();
+    let pkh = match script.next() {
+        Some(bitcoin::blockdata::script::Instruction::PushBytes(b)) => b,
+        None => bail!("unexpected end of input"),
+        _ => bail!("invalid opcode"),
+    };
+
+    Ok(pubkey_hash_to_addr(pkh, network))
+}
+
+pub fn is_p2pkh(first: u8) -> bool {
+    first == 0x00 || first == 0x1E || first == 0x30
+}
+
+pub fn pubkey_hash_to_addr(pkh: &[u8], network: Network) -> String {
+    let version_byte: u8 = match network {
+        Network::Dogecoin => 0x1E,
+        Network::Litecoin => 0x30,
+        Network::Bitcoin => 0x00,
+    };
+
+    let mut addr_bytes: Vec<u8> = vec![version_byte];
+    addr_bytes.extend(pkh);
+
+    let mut hasher = Sha256::new();
+    hasher.input(&addr_bytes);
+    let res = hasher.result();
+    let mut hasher = Sha256::new();
+    hasher.input(&res);
+    let chksum = hasher.result();
+
+    addr_bytes.extend(&chksum[0..4]);
+
+    ToBase58::to_base58(addr_bytes.as_slice())
+}
+
+pub fn pubkey_to_addr(pk: &[u8], network: Network) -> String {
+    let mut hasher = Sha256::new();
+    hasher.input(pk);
+    let sha_bytes = hasher.result();
+
+    let mut hasher = Ripemd160::new();
+    hasher.input(&sha_bytes);
+    let ripe_bytes = hasher.result();
+
+    pubkey_hash_to_addr(ripe_bytes.as_slice(), network)
 }

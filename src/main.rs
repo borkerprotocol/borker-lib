@@ -33,6 +33,12 @@ fn main() -> Result<(), failure::Error> {
                 },
                 None => eprintln!("usage: {} wallet_from_bytes <hexdata>", name)
             }
+        },
+        Some("parse_block") => {
+            let mut v: serde_json::Value = serde_json::from_reader(std::fs::File::open("./blockdata.json").unwrap()).unwrap();
+            let v = v.get_mut("result").unwrap().take();
+            let s: String = serde_json::from_value(v).unwrap();
+            println!("{:?}", lib::processBlock(s, lib::Network::Dogecoin));
         }
         None | Some("help") => eprintln!("usage: {} <command> [args...]", name),
         Some(a) => eprintln!("'{}' is not a valid command", a),

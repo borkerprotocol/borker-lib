@@ -1,9 +1,10 @@
 
 use super::addr_to_script;
+
+use super::pubkey_hash_to_addr;
 use super::HmacSha512;
 use crate::big_array::BigArray;
 use crate::Network;
-use base58::ToBase58;
 use failure::Error;
 use hmac::Mac;
 use ripemd160::Digest;
@@ -23,13 +24,15 @@ pub struct ChildWallet {
 }
 impl ChildWallet {
     pub fn new(seed: [u8; 64]) -> Self {
+        use rand::Rng;
+        let mut rng = rand::rngs::EntropyRng::new();
         let mut res = ChildWallet {
             seed,
             mpriv: None,
             mpub: None,
             children: Vec::new(),
             hardened_children: Vec::new(),
-            nonce: 0,
+            nonce: rng.gen(),
         };
         res.init();
         res
@@ -64,12 +67,9 @@ impl ChildWallet {
         self.mpub.as_ref().expect("wallet uninitialized")
     }
 
-    pub fn nonce(&self) -> &u8 {
-        &self.nonce
-    }
-
-    pub fn nonce_mut(&mut self) -> &mut u8 {
-        &mut self.nonce
+    pub fn nonce(&mut self) -> u8 {
+        self.nonce += 1;
+        self.nonce
     }
 
     pub fn next_child(&mut self, hardened: bool) -> Result<&mut ChildWallet, Error> {
@@ -160,25 +160,7 @@ impl ChildWallet {
     }
 
     pub fn address(&self, network: Network) -> String {
-        let version_byte: u8 = match network {
-            Network::Dogecoin => 0x1E,
-            Network::Litecoin => 0x30,
-            Network::Bitcoin => 0x6F,
-        };
-
-        let mut addr_bytes: Vec<u8> = vec![version_byte];
-        addr_bytes.extend(&self.pubkey_hash());
-
-        let mut hasher = Sha256::new();
-        hasher.input(&addr_bytes);
-        let res = hasher.result();
-        let mut hasher = Sha256::new();
-        hasher.input(&res);
-        let chksum = hasher.result();
-
-        addr_bytes.extend(&chksum[0..4]);
-
-        ToBase58::to_base58(addr_bytes.as_slice())
+        pubkey_hash_to_addr(&self.pubkey_hash(), network)
     }
 
     fn serializable(&self) -> Result<SerializableChildWallet, Error> {
@@ -307,7 +289,7 @@ impl ChildWallet {
             .collect::<Vec<_>>();
         let input_size = inputs.iter().fold(0, |acc, tx| acc + tx.1.value);
         let output_size = outputs.iter().fold(0, |acc, o| acc + o.1);
-        if output_size >= input_size - fee || input_size < fee {
+        if output_size > input_size - fee || input_size < fee {
             bail!("insufficient funds")
         }
         let mut outputs = outputs.iter().cloned().collect::<Vec<_>>();
@@ -341,7 +323,7 @@ impl ChildWallet {
             })
             .collect();
         let mut tx = Transaction {
-            version: 2,
+            version: 1,
             lock_time: 0,
             input: input.clone(),
             output,

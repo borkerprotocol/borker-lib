@@ -41,7 +41,7 @@ and references the most recent bork posted by that user with a txid with the sam
 #### Extension
 `Version (2 bytes)` `06` `Nonce (1 byte)` `Index (1 byte)` `<message> (0-75 bytes)`
 
-This message type continues a previous message of types bork, comment, legacy comment, rebork, and legacy rebork. It is a continuation of the most recent message with the same nonce.
+This message type continues a previous message of types bork, comment, and rebork. It is a continuation of the most recent message with the same nonce. Index must start at 1.
 
 #### Deleting a bork
 
