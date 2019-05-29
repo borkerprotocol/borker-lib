@@ -91,6 +91,6 @@ export class JsChildWallet {
 
   address(network: Network): string;
 
-  newBork(data: NewBorkData, inputs: string[], outputs: Output[], fee: bigint)
+  newBork(data: NewBorkData, inputs: string[], outputs: Output[], fee: bigint): string[];
 
 }
