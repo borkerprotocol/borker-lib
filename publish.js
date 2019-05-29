@@ -2,9 +2,9 @@ fs = require('fs')
 child_process = require('child_process')
 
 if (process.argv[2] === 'node') {
-    child_process.execSync('wasm-pack build --target=nodejs', { stdio: "inherit" })
+    child_process.execSync('wasm-pack build --target nodejs', { stdio: "inherit" })
 } else if (process.argv[2] === 'browser') {
-    child_process.execSync('wasm-pack build --target=browser', { stdio: "inherit" })
+    child_process.execSync('wasm-pack build --target bundler', { stdio: "inherit" })
 } else {
     throw new Error("must be 'node' or 'browser'")
 }
