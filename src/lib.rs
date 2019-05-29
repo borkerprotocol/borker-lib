@@ -186,6 +186,7 @@ impl JsChildWallet {
         ));
         let mut txs = vec![];
         let mut prev_tx: Option<Vec<u8>> = None;
+        let mut o = outputs.iter().map(|o| o.as_tup()).collect::<Vec<_>>();
         for op_ret in op_rets {
             let tx = js_try!(self.inner.construct_signed(
                 match prev_tx {
@@ -193,12 +194,13 @@ impl JsChildWallet {
                     None => inputs.clone(),
                 }
                 .as_slice(),
-                &outputs.iter().map(|o| o.as_tup()).collect::<Vec<_>>(),
+                &o,
                 fee,
                 Some(op_ret.as_slice()),
             ));
             prev_tx = Some(tx.clone());
             txs.push(tx);
+            o = Vec::new();
         }
         let txs = txs
             .into_iter()
