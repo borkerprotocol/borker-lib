@@ -1,5 +1,5 @@
 /* tslint:disable */
-export function processBlock(block: string, blockHeight: number, network: Network): BlockData;
+export function processBlock(block: string, blockHeight: bigint, network: Network): BlockData;
 
 export enum BorkType {
   SetName = 'set_name',
