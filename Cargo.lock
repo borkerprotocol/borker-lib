@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "borker-rs"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "base58 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bigdecimal 0.0.15 (registry+https://github.com/rust-lang/crates.io-index)",

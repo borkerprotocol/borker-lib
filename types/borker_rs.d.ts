@@ -49,8 +49,8 @@ export interface NewUtxo {
 
 export interface BlockData {
   borkerTxs: BorkTxData[],
-  spent: UtxoId[],
-  created: NewUtxo[],
+  spent: UtxoId[][],
+  created: NewUtxo[][],
 }
 
 export interface NewBorkData {
