@@ -15,14 +15,15 @@ pub const MAGIC: [u8; 2] = [0xD0, 0x6E];
 #[derive(Debug, Serialize)]
 pub struct UtxoId {
     txid: String,
-    index: u32,
+    position: u32,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NewUtxo {
+    block_height: u64,
     txid: String,
-    index: u32,
+    position: u32,
     address: String,
     value: u64,
     raw: String,
@@ -57,7 +58,7 @@ pub struct BorkTxData<'a> {
     #[serde(rename = "type")]
     bork_type: BorkType,
     nonce: Option<u8>,
-    index: Option<u8>,
+    position: Option<u8>,
     reference_id: Option<String>,
     content: Option<String>,
     sender_address: String,
@@ -447,7 +448,7 @@ pub fn decode<'a>(
         0x00 => BorkTxData {
             bork_type: BorkType::SetName,
             content: Some(std::str::from_utf8(data.rest())?.to_owned()),
-            index: None,
+            position: None,
             mentions: Vec::new(),
             nonce: None,
             recipient_address: None,
@@ -459,7 +460,7 @@ pub fn decode<'a>(
         0x01 => BorkTxData {
             bork_type: BorkType::SetBio,
             content: Some(std::str::from_utf8(data.rest())?.to_owned()),
-            index: None,
+            position: None,
             mentions: Vec::new(),
             nonce: None,
             recipient_address: None,
@@ -471,7 +472,7 @@ pub fn decode<'a>(
         0x02 => BorkTxData {
             bork_type: BorkType::SetAvatar,
             content: Some(std::str::from_utf8(data.rest())?.to_owned()),
-            index: None,
+            position: None,
             mentions: Vec::new(),
             nonce: None,
             recipient_address: None,
@@ -482,7 +483,7 @@ pub fn decode<'a>(
         },
         0x03 => BorkTxData {
             bork_type: BorkType::Bork,
-            index: Some(0),
+            position: Some(0),
             mentions: out_addrs
                 .rest()
                 .into_iter()
@@ -498,7 +499,7 @@ pub fn decode<'a>(
         },
         0x04 => BorkTxData {
             bork_type: BorkType::Comment,
-            index: Some(0),
+            position: Some(0),
             recipient_address: Some(out_addrs.next()?.to_owned()),
             mentions: out_addrs
                 .rest()
@@ -514,7 +515,7 @@ pub fn decode<'a>(
         },
         0x05 => BorkTxData {
             bork_type: BorkType::Rebork,
-            index: Some(0),
+            position: Some(0),
             recipient_address: Some(out_addrs.next()?.to_owned()),
             mentions: out_addrs
                 .rest()
@@ -537,7 +538,7 @@ pub fn decode<'a>(
                 .map(|a| a.clone().to_owned())
                 .collect(),
             nonce: Some(data.next()?),
-            index: Some(data.next()?),
+            position: Some(data.next()?),
             reference_id: None,
             content: Some(std::str::from_utf8(data.rest())?.to_owned()),
             sender_address: from,
@@ -549,7 +550,7 @@ pub fn decode<'a>(
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: Some(hex::encode(data.var_next()?)),
             content: None,
             sender_address: from,
@@ -561,7 +562,7 @@ pub fn decode<'a>(
             recipient_address: Some(out_addrs.next()?.to_owned()),
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: Some(hex::encode(data.var_next()?)),
             content: None,
             sender_address: from,
@@ -573,7 +574,7 @@ pub fn decode<'a>(
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: Some(hex::encode(data.next_n(32)?)),
             content: None,
             sender_address: from,
@@ -585,7 +586,7 @@ pub fn decode<'a>(
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: Some(hex::encode(data.next_n(32)?)),
             content: None,
             sender_address: from,
@@ -597,7 +598,7 @@ pub fn decode<'a>(
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: Some(hex::encode(data.next_n(32)?)),
             content: None,
             sender_address: from,
@@ -609,7 +610,7 @@ pub fn decode<'a>(
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: None,
             content: Some(pubkey_hash_to_addr(data.next_n(20)?, network)),
             sender_address: from,
@@ -621,7 +622,7 @@ pub fn decode<'a>(
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: None,
             content: Some(pubkey_hash_to_addr(data.next_n(20)?, network)),
             sender_address: from,
@@ -633,7 +634,7 @@ pub fn decode<'a>(
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: None,
             content: Some(pubkey_hash_to_addr(data.next_n(20)?, network)),
             sender_address: from,
@@ -645,7 +646,7 @@ pub fn decode<'a>(
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
-            index: None,
+            position: None,
             reference_id: None,
             content: Some(pubkey_hash_to_addr(data.next_n(20)?, network)),
             sender_address: from,
@@ -659,6 +660,7 @@ pub fn decode<'a>(
 pub fn parse_tx<'a>(
     tx: bitcoin::Transaction,
     time: &'a DateTime<Utc>,
+    block_height: u64,
     network: Network,
 ) -> (Option<BorkTxData<'a>>, Vec<UtxoId>, Vec<NewUtxo>) {
     use bitcoin::consensus::Encodable;
@@ -711,8 +713,9 @@ pub fn parse_tx<'a>(
     for (idx, o) in tx.output.iter().enumerate() {
         if o.script_pubkey.is_p2pkh() {
             created.push(NewUtxo {
+                block_height,
                 txid: txid.clone(),
-                index: idx as u32,
+                position: idx as u32,
                 address: crate::wallet::script_to_addr(&o.script_pubkey, network).unwrap(),
                 value: o.value,
                 raw: tx_hex.clone(),
@@ -730,7 +733,7 @@ pub fn parse_tx<'a>(
     for (idx, i) in tx.input.into_iter().enumerate() {
         spent.push(UtxoId {
             txid: format!("{:x}", i.previous_output.txid),
-            index: idx as u32,
+            position: idx as u32,
         });
     }
 

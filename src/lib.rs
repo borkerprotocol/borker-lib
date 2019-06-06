@@ -21,8 +21,8 @@ pub use self::wallet::{ChildWallet, Wallet};
 #[serde(rename_all = "camelCase")]
 pub struct BlockData<'a> {
     borker_txs: Vec<protocol::BorkTxData<'a>>,
-    spent: Vec<protocol::UtxoId>,
-    created: Vec<protocol::NewUtxo>,
+    spent: Vec<Vec<protocol::UtxoId>>,
+    created: Vec<Vec<protocol::NewUtxo>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,7 +39,11 @@ impl Output {
 
 #[wasm_bindgen]
 #[allow(non_snake_case)]
-pub fn processBlock(block: String, network: Network) -> Result<JsValue, JsValue> {
+pub fn processBlock(
+    block: String,
+    block_height: u64,
+    network: Network,
+) -> Result<JsValue, JsValue> {
     use bitcoin::consensus::encode::Decodable;
 
     let block = js_try!(hex::decode(&block));
@@ -72,17 +76,34 @@ pub fn processBlock(block: String, network: Network) -> Result<JsValue, JsValue>
         spent: Vec::new(),
         created: Vec::new(),
     };
+    let mut spent_inner = Vec::new();
+    let mut created_inner = Vec::new();
     for _ in 0..count.0 {
         let (bork, spent, created) = protocol::parse_tx(
             js_try!(Decodable::consensus_decode(&mut cur)),
             &timestamp,
+            block_height,
             network,
         );
         if let Some(bork) = bork {
             block_data.borker_txs.push(bork);
         }
-        block_data.spent.extend(spent);
-        block_data.created.extend(created);
+        if spent_inner.len() + spent.len() >= 100 {
+            block_data.spent.push(spent_inner);
+            spent_inner = Vec::new();
+        }
+        spent_inner.extend(spent);
+        if created_inner.len() + created.len() >= 100 {
+            block_data.created.push(created_inner);
+            created_inner = Vec::new();
+        }
+        created_inner.extend(created);
+    }
+    if spent_inner.len() > 0 {
+        block_data.spent.push(spent_inner);
+    }
+    if created_inner.len() > 0 {
+        block_data.created.push(created_inner);
     }
     Ok(js_try!(JsValue::from_serde(&block_data)))
 }

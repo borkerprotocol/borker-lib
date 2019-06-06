@@ -1,5 +1,5 @@
 /* tslint:disable */
-export function processBlock(block: string, network: Network): BlockData;
+export function processBlock(block: string, blockHeight: number, network: Network): BlockData;
 
 export enum BorkType {
   SetName = 'set_name',
@@ -25,7 +25,7 @@ export interface BorkTxData {
   txid: string,
   type: BorkType,
   nonce: number | null,
-  index: number | null,
+  position: number | null,
   referenceId: string | null,
   content: string | null,
   senderAddress: string,
@@ -35,12 +35,13 @@ export interface BorkTxData {
 
 export interface UtxoId {
   txid: string,
-  index: number,
+  position: number,
 }
 
 export interface NewUtxo {
+  blockHeight: number,
   txid: string,
-  index: number,
+  position: number,
   address: string,
   value: number,
   raw: string,
