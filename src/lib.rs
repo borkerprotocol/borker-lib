@@ -15,6 +15,13 @@ mod macros;
 mod protocol;
 mod wallet;
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+}
+
 pub use self::wallet::{ChildWallet, Wallet};
 
 #[derive(Debug, Serialize)]
@@ -79,7 +86,7 @@ pub fn processBlock(
     let mut spent_inner = Vec::new();
     let mut created_inner = Vec::new();
     for _ in 0..count.0 {
-        let (bork, spent, created) = protocol::parse_tx(
+        let (bork, mut spent, mut created) = protocol::parse_tx(
             js_try!(Decodable::consensus_decode(&mut cur)),
             &timestamp,
             block_height,
@@ -88,12 +95,16 @@ pub fn processBlock(
         if let Some(bork) = bork {
             block_data.borker_txs.push(bork);
         }
-        if spent_inner.len() + spent.len() >= 100 {
+        while spent_inner.len() + spent.len() >= 100 {
+            let at = spent_inner.len() + spent.len() - 100;
+            spent_inner.extend(spent.split_off(at));
             block_data.spent.push(spent_inner);
             spent_inner = Vec::new();
         }
         spent_inner.extend(spent);
-        if created_inner.len() + created.len() >= 100 {
+        while created_inner.len() + created.len() >= 100 {
+            let at = created_inner.len() + created.len() - 100;
+            created_inner.extend(created.split_off(at));
             block_data.created.push(created_inner);
             created_inner = Vec::new();
         }
