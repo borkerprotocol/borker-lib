@@ -8,83 +8,67 @@ A user's address must be P2PKH in order to enable an optimization in which we ca
 looking up the referenced output.
 
 
-## Message Types
+## Bork Types
 
-### Identifying
-
-#### Nickname
+### Nickname
 `Version (2 bytes)` `00` `<nickname> (0-77 bytes)`
 
-#### Biography
+Set your nickname. Cannot be extended.
+
+### Biography
 `Version (2 bytes)` `01` `<biography> (0-77 bytes)`
 
-#### Avatar
+Set your biography. Cannot be extended.
+
+### Avatar
 `Version (2 bytes)` `02` `<link to avatar image> (0-77 bytes)`
 
-### Borking
+Set your avatar by providing a link to the image. Cannot be extended.
 
-#### Standard bork
+### Post
 `Version (2 bytes)` `03` `Nonce (1 byte)` `<message> (0-76 bytes)`
 
-#### Comment
+Bork it loud.
+
+### Comment
 `Version (2 bytes)` `04` `Nonce (1 byte)` `Ref (VarString 2-33 bytes)` `<message> (0-74 bytes)`
 
 A comment references a previous bork, by checking the address of the first P2PKH, non-change, output,
 and references the most recent bork posted by that user with a txid with the same prefix as the provided `Ref` string.
 
-#### Rebork
+### Rebork
 `Version (2 bytes)` `05` `Nonce (1 byte)` `Ref (VarString 2-33 bytes)` `<message> (0-74 bytes)`
 
 A rebork references a previous bork, by checking the address of the first P2PKH output,
 and references the most recent bork posted by that user with a txid with the same prefix as the provided `Ref` string. Includes an optional message.
 
-#### Extension
+### Extension
 `Version (2 bytes)` `06` `Nonce (1 byte)` `Index (1 byte)` `<message> (0-75 bytes)`
 
-This message type continues a previous message of types bork, comment, and rebork. It is a continuation of the most recent message with the same nonce. Index must start at 1.
+This bork type continues a previous bork of type Post, Comment, or Rebork. It is a continuation of the most recent bork with the same nonce. Index must start at 1 since the original bork already has index 0.
 
-#### Deleting a bork
-
+### Like
 `Version (2 bytes)` `07` `Ref (VarString 2-33 bytes)`
-
-Deletes a previous message, referred to by the most recent bork from the same address with a txid with the same prefix as the provided `Ref` string.
-
-### Liking/Flagging
-
-#### Like
-`Version (2 bytes)` `08` `Ref (VarString 2-33 bytes)`
 
 A like references a previous bork, by checking the address of the first P2PKH output,
 and references the most recent bork posted by that user with the most recent txid with the same prefix as the provided `Ref` string.
 
-#### Unlike
-`Version (2 bytes)` `09` `<txid to unlike> (32 bytes)`
+### Flag
 
-Removes a like from a previous bork, by txid.
-
-#### Flag
-
-`Version (2 bytes)` `0A` `<txid to flag> (32 bytes)`
+`Version (2 bytes)` `08` `<txid to flag> (32 bytes)`
 
 A flag marks a bork as inappropriate.
 
-#### Unflag
-`Version (2 bytes)` `0B` `<txid to unflag> (32 bytes)`
+### Follow
+`Version (2 bytes)` `09` `<address to follow> (20 bytes)`
 
-Removes a flag from a previous bork, by txid.
+### Block
+`Version (2 bytes)` `0A` `<address to block> (20 bytes)`
 
-### Following/Blocking
+Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks.
 
-#### Follow
-`Version (2 bytes)` `0C` `<pubkey hash to follow> (20 bytes)`
+### Delete
 
-#### Unfollow
-`Version (2 bytes)` `0D` `<pubkey hash to unfollow> (20 bytes)`
+`Version (2 bytes)` `0B` `Ref (VarString 2-33 bytes)`
 
-#### Block
-`Version (2 bytes)` `0E` `<pubkey hash to block> (20 bytes)`
-
-Blocking a user prevents them from viewing your profile and associated info, as well as viewing or interacting with your borks, comments, reborks, and extensions. (This is only enforced client side).
-
-#### Unblock
-`Version (2 bytes)` `0F` `<pubkey hash to unblock> (20 bytes)`
+Deletes a previous bork, referred to by the most recent non-deleted bork from the same address with a txid with the same prefix as the provided `Ref` string. You can also use this type to Unlike, Unflag, Unfollow, and Unblock. This type has no effect previous borks of type Nickname, Biography, Avatar, or Delete
