@@ -385,7 +385,9 @@ pub fn get_tags(body: &str) -> Vec<String> {
                 tag = String::new();
                 in_tag = false;
             } else {
-                tag.push(c);
+                for c in c.to_lowercase() {
+                    tag.push(c);
+                }
             }
         }
     }
