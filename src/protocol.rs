@@ -9,6 +9,7 @@ use crate::wallet::pubkey_hash_to_addr;
 use crate::wallet::pubkey_to_addr;
 use chrono::DateTime;
 use chrono::Utc;
+use std::collections::HashSet;
 
 pub const MAGIC: [u8; 2] = [0xD0, 0x6E];
 
@@ -365,13 +366,13 @@ impl<'a> Cur<'a, u8> {
 }
 
 pub fn get_tags(body: &str) -> Vec<String> {
-    let mut res = Vec::new();
+    let mut res = HashSet::new();
     let mut tag = String::new();
     let mut in_tag = false;
     for c in body.chars() {
         if c == '#' {
             if in_tag && tag.len() > 0 {
-                res.push(tag);
+                res.insert(tag);
                 tag = String::new();
             } else {
                 in_tag = true;
@@ -380,7 +381,7 @@ pub fn get_tags(body: &str) -> Vec<String> {
         }
         if in_tag {
             if c == ' ' || c == '\t' || c == '\n' {
-                res.push(tag);
+                res.insert(tag);
                 tag = String::new();
                 in_tag = false;
             } else {
@@ -389,9 +390,9 @@ pub fn get_tags(body: &str) -> Vec<String> {
         }
     }
     if tag.len() > 0 {
-        res.push(tag);
+        res.insert(tag);
     }
-    res
+    res.into_iter().collect()
 }
 
 pub fn decode<'a>(
