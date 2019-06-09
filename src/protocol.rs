@@ -381,8 +381,10 @@ pub fn get_tags(body: &str) -> Vec<String> {
         }
         if in_tag {
             if c == ' ' || c == '\t' || c == '\n' {
-                res.insert(tag);
-                tag = String::new();
+                if tag.len() > 0 {
+                    res.insert(tag);
+                    tag = String::new();
+                }
                 in_tag = false;
             } else {
                 for c in c.to_lowercase() {
