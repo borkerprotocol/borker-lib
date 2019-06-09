@@ -202,6 +202,7 @@ impl JsChildWallet {
         recipient: JsValue,
         mentions: JsValue,
         fee: u64,
+        network: Network,
     ) -> Result<JsValue, JsValue> {
         use protocol::*;
 
@@ -211,7 +212,9 @@ impl JsChildWallet {
             .map(|i| hex::decode(i))
             .collect::<Result<Vec<_>, _>>());
 
-        let mut outputs = js_try!(recipient.into_serde::<Option<Output>>()).into_iter().collect::<Vec<Output>>();
+        let mut outputs = js_try!(recipient.into_serde::<Option<Output>>())
+            .into_iter()
+            .collect::<Vec<Output>>();
         outputs.extend(js_try!(mentions.into_serde::<Vec<Output>>()));
 
         let op_rets = js_try!(encode(
@@ -231,6 +234,7 @@ impl JsChildWallet {
                 &o,
                 fee,
                 Some(op_ret.as_slice()),
+                network,
             ));
             prev_tx = Some(tx.clone());
             txs.push(tx);
@@ -242,6 +246,31 @@ impl JsChildWallet {
             .collect::<Vec<String>>();
 
         Ok(js_try!(JsValue::from_serde(&txs)))
+    }
+
+    #[allow(non_snake_case)]
+    pub fn constructSigned(
+        &self,
+        inputs: JsValue,
+        destination: String,
+        amount: u64,
+        fee: u64,
+        network: Network,
+    ) -> Result<String, JsValue> {
+        let inputs = js_try!(inputs.into_serde::<Vec<String>>());
+        let inputs = js_try!(inputs
+            .into_iter()
+            .map(|i| hex::decode(i))
+            .collect::<Result<Vec<_>, _>>());
+
+        let signed = js_try!(self.inner.construct_signed(
+            &inputs,
+            &[(destination.as_str(), amount)],
+            fee,
+            None,
+            network
+        ));
+        Ok(hex::encode(signed))
     }
 
 }

@@ -15,7 +15,10 @@ macro_rules! mask_16 {
 #[macro_export]
 macro_rules! js_try {
     ($x:expr) => {
-        ($x).map_err(|e| format_js_err!("{}: {}", line!(), e))?
+        ($x).map_err(|e| {
+            let e = failure::Error::from(e);
+            format_js_err!("{}: {}\n{}", line!(), e, e.backtrace())
+        })?
     };
 }
 

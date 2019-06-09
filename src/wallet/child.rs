@@ -246,7 +246,7 @@ impl ChildWallet {
     }
 
     pub fn script(&self) -> bitcoin::Script {
-        addr_to_script(&self.address(Network::Bitcoin)).unwrap()
+        addr_to_script(&self.address(Network::Bitcoin), Network::Bitcoin).unwrap()
     }
 
     pub fn construct_signed(
@@ -255,6 +255,7 @@ impl ChildWallet {
         outputs: &[(&str, u64)],
         fee: u64,
         op_return: Option<&[u8]>,
+        network: Network,
     ) -> Result<Vec<u8>, Error> {
         use bitcoin::consensus::Decodable;
         use bitcoin::consensus::Encodable;
@@ -300,7 +301,7 @@ impl ChildWallet {
             .into_iter()
             .map(|(addr, val)| -> Result<_, Error> {
                 Ok(TxOut {
-                    script_pubkey: addr_to_script(addr)?,
+                    script_pubkey: addr_to_script(addr, network)?,
                     value: val,
                 })
             })

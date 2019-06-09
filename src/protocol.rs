@@ -65,6 +65,7 @@ pub struct BorkTxData<'a> {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NewBorkData {
     #[serde(rename = "type")]
     bork_type: BorkType,
@@ -624,7 +625,7 @@ pub fn parse_tx<'a>(
             let sighash_type = sig.remove(sig.len() - 1);
             let addr = pubkey_to_addr(pubkey, network);
             let msg = secp256k1::Message::parse_slice(
-                &tx.signature_hash(0, &addr_to_script(&addr).ok()?, sighash_type as u32)
+                &tx.signature_hash(0, &addr_to_script(&addr, network).ok()?, sighash_type as u32)
                     .into_inner(),
             )
             .ok()?;

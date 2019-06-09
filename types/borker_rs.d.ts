@@ -98,7 +98,8 @@ export class JsChildWallet {
     inputs: string[],
     recipient: Output | null,
     mentions: Output[],
-    fee: bigint
+    fee: bigint,
+    network: Network
   ): string[];
 
 }

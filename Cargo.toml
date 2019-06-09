@@ -15,8 +15,6 @@ path = "src/main.rs"
 
 [features]
 default = ["console_error_panic_hook", "wee_alloc"]
-[profile.release]
-debug = true
 
 [dependencies]
 base58 = "0.1.0"
