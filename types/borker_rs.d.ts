@@ -102,4 +102,12 @@ export class JsChildWallet {
     network: Network
   ): string[];
 
+  constructSigned(
+    inputs: string[],
+    destination: string,
+    amount: bigint,
+    fee: bigint,
+    network: Network,
+  ): string;
+
 }

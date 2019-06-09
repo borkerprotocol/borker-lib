@@ -294,8 +294,10 @@ impl ChildWallet {
             bail!("insufficient funds")
         }
         let mut outputs = outputs.iter().cloned().collect::<Vec<_>>();
-        let address = self.address(Network::Bitcoin);
-        outputs.push((address.as_str(), input_size - output_size - fee));
+        let address = self.address(network);
+        if input_size - output_size - fee > fee {
+            outputs.push((address.as_str(), input_size - output_size - fee));
+        }
 
         let output = outputs
             .into_iter()

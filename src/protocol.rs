@@ -308,6 +308,8 @@ pub fn encode(bork: NewBork, nonce: u8) -> Result<Vec<Vec<u8>>, Error> {
             buf.write(&c)?;
         }
         buf_vec.push(buf);
+    } else {
+        buf_vec.push(buf);
     }
 
     Ok(buf_vec)
@@ -625,8 +627,12 @@ pub fn parse_tx<'a>(
             let sighash_type = sig.remove(sig.len() - 1);
             let addr = pubkey_to_addr(pubkey, network);
             let msg = secp256k1::Message::parse_slice(
-                &tx.signature_hash(0, &addr_to_script(&addr, network).ok()?, sighash_type as u32)
-                    .into_inner(),
+                &tx.signature_hash(
+                    0,
+                    &addr_to_script(&addr, network).ok()?,
+                    sighash_type as u32,
+                )
+                .into_inner(),
             )
             .ok()?;
             if !secp256k1::verify(

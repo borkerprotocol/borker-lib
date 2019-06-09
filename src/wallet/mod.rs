@@ -226,7 +226,7 @@ pub fn addr_to_script(addr: &str, network: Network) -> Result<bitcoin::Script, E
         Network::Litecoin => 0x30,
         Network::Bitcoin => 0x00,
     } {
-        bail!("not p2pkh");
+        bail!("address version {:x} is not p2pkh", v);
     }
 
     let mut s: Vec<u8> = vec![0x76, 0xA9, addr_bytes.len() as u8];
