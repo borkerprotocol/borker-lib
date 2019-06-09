@@ -199,7 +199,8 @@ impl JsChildWallet {
         &mut self,
         data: JsValue,
         inputs: JsValue,
-        outputs: JsValue,
+        recipient: JsValue,
+        mentions: JsValue,
         fee: u64,
     ) -> Result<JsValue, JsValue> {
         use protocol::*;
@@ -210,7 +211,8 @@ impl JsChildWallet {
             .map(|i| hex::decode(i))
             .collect::<Result<Vec<_>, _>>());
 
-        let outputs = js_try!(outputs.into_serde::<Vec<Output>>());
+        let mut outputs = js_try!(recipient.into_serde::<Option<Output>>()).into_iter().collect::<Vec<Output>>();
+        outputs.extend(js_try!(mentions.into_serde::<Vec<Output>>()));
 
         let op_rets = js_try!(encode(
             js_try!(NewBork::try_from(js_try!(data.into_serde::<NewBorkData>()))),

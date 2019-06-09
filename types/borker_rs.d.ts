@@ -31,6 +31,7 @@ export interface BorkTxData {
   senderAddress: string,
   recipientAddress: string | null,
   mentions: string[],
+  tags: string[],
 }
 
 export interface UtxoId {
@@ -92,6 +93,12 @@ export class JsChildWallet {
 
   address(network: Network): string;
 
-  newBork(data: NewBorkData, inputs: string[], outputs: Output[], fee: bigint): string[];
+  newBork(
+    data: NewBorkData,
+    inputs: string[],
+    recipient: Output | null,
+    mentions: Output[],
+    fee: bigint
+  ): string[];
 
 }

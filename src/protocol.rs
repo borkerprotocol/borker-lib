@@ -41,13 +41,9 @@ pub enum BorkType {
     Extension,
     Delete,
     Like,
-    Unlike,
     Flag,
-    Unflag,
     Follow,
-    Unfollow,
     Block,
-    Unblock,
 }
 
 #[derive(Debug, Serialize)]
@@ -64,6 +60,7 @@ pub struct BorkTxData<'a> {
     sender_address: String,
     recipient_address: Option<String>,
     mentions: Vec<String>,
+    tags: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -101,25 +98,13 @@ pub enum NewBork {
     Like {
         reference_id: Vec<u8>,
     },
-    Unlike {
-        txid: Vec<u8>,
-    },
     Follow {
-        address: Vec<u8>,
-    },
-    Unfollow {
         address: Vec<u8>,
     },
     Block {
         address: Vec<u8>,
     },
-    Unblock {
-        address: Vec<u8>,
-    },
     Flag {
-        txid: Vec<u8>,
-    },
-    Unflag {
         txid: Vec<u8>,
     },
 }
@@ -204,26 +189,12 @@ impl std::convert::TryFrom<NewBorkData> for NewBork {
                 }
                 Ok(NewBork::Like { reference_id })
             }
-            BorkType::Unlike => {
-                let txid = hex::decode(&data.reference_id.ok_or(format_err!("missing txid"))?)?;
-                if txid.len() != 32 {
-                    bail!("invalid length for txid");
-                }
-                Ok(NewBork::Unlike { txid })
-            }
             BorkType::Flag => {
                 let txid = hex::decode(&data.reference_id.ok_or(format_err!("missing txid"))?)?;
                 if txid.len() != 32 {
                     bail!("invalid length for txid");
                 }
                 Ok(NewBork::Flag { txid })
-            }
-            BorkType::Unflag => {
-                let txid = hex::decode(&data.reference_id.ok_or(format_err!("missing txid"))?)?;
-                if txid.len() != 32 {
-                    bail!("invalid length for txid");
-                }
-                Ok(NewBork::Unflag { txid })
             }
             BorkType::Follow => {
                 let mut address = bitcoin::util::base58::from_check(
@@ -234,15 +205,6 @@ impl std::convert::TryFrom<NewBorkData> for NewBork {
                 }
                 Ok(NewBork::Follow { address })
             }
-            BorkType::Unfollow => {
-                let mut address = bitcoin::util::base58::from_check(
-                    &data.content.ok_or(format_err!("missing content"))?,
-                )?;
-                if !is_p2pkh(address.remove(0)) {
-                    bail!("address is not P2PKH");
-                }
-                Ok(NewBork::Unfollow { address })
-            }
             BorkType::Block => {
                 let mut address = bitcoin::util::base58::from_check(
                     &data.content.ok_or(format_err!("missing content"))?,
@@ -251,15 +213,6 @@ impl std::convert::TryFrom<NewBorkData> for NewBork {
                     bail!("address is not P2PKH");
                 }
                 Ok(NewBork::Block { address })
-            }
-            BorkType::Unblock => {
-                let mut address = bitcoin::util::base58::from_check(
-                    &data.content.ok_or(format_err!("missing content"))?,
-                )?;
-                if !is_p2pkh(address.remove(0)) {
-                    bail!("address is not P2PKH");
-                }
-                Ok(NewBork::Unblock { address })
             }
         }
     }
@@ -311,51 +264,31 @@ pub fn encode(bork: NewBork, nonce: u8) -> Result<Vec<Vec<u8>>, Error> {
             buf.extend(reference_id);
             Some(content.into_bytes())
         }
-        NewBork::Delete { reference_id } => {
+        NewBork::Like { reference_id } => {
             buf.push(0x07);
             buf.push(reference_id.len() as u8);
             buf.extend(reference_id);
             None
         }
-        NewBork::Like { reference_id } => {
-            buf.push(0x08);
-            buf.push(reference_id.len() as u8);
-            buf.extend(reference_id);
-            None
-        }
-        NewBork::Unlike { txid } => {
-            buf.push(0x09);
-            buf.extend(txid);
-            None
-        }
         NewBork::Flag { txid } => {
-            buf.push(0x0A);
-            buf.extend(txid);
-            None
-        }
-        NewBork::Unflag { txid } => {
-            buf.push(0x0B);
+            buf.push(0x08);
             buf.extend(txid);
             None
         }
         NewBork::Follow { address } => {
-            buf.push(0x0C);
-            buf.extend(address);
-            None
-        }
-        NewBork::Unfollow { address } => {
-            buf.push(0x0D);
+            buf.push(0x09);
             buf.extend(address);
             None
         }
         NewBork::Block { address } => {
-            buf.push(0x0E);
+            buf.push(0x0A);
             buf.extend(address);
             None
         }
-        NewBork::Unblock { address } => {
-            buf.push(0x0F);
-            buf.extend(address);
+        NewBork::Delete { reference_id } => {
+            buf.push(0x0B);
+            buf.push(reference_id.len() as u8);
+            buf.extend(reference_id);
             None
         }
     };
@@ -431,6 +364,36 @@ impl<'a> Cur<'a, u8> {
     }
 }
 
+pub fn get_tags(body: &str) -> Vec<String> {
+    let mut res = Vec::new();
+    let mut tag = String::new();
+    let mut in_tag = false;
+    for c in body.chars() {
+        if c == '#' {
+            if in_tag && tag.len() > 0 {
+                res.push(tag);
+                tag = String::new();
+            } else {
+                in_tag = true;
+            }
+            continue;
+        }
+        if in_tag {
+            if c == ' ' || c == '\t' || c == '\n' {
+                res.push(tag);
+                tag = String::new();
+                in_tag = false;
+            } else {
+                tag.push(c);
+            }
+        }
+    }
+    if tag.len() > 0 {
+        res.push(tag);
+    }
+    res
+}
+
 pub fn decode<'a>(
     data: &[u8],
     out_addrs: &[&str],
@@ -444,7 +407,7 @@ pub fn decode<'a>(
     if data.next()? != MAGIC[0] || data.next()? != MAGIC[1] {
         bail!("invalid version");
     }
-    Ok(match data.next()? {
+    let mut res = match data.next()? {
         0x00 => BorkTxData {
             bork_type: BorkType::SetName,
             content: Some(std::str::from_utf8(data.rest())?.to_owned()),
@@ -456,6 +419,7 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
         0x01 => BorkTxData {
             bork_type: BorkType::SetBio,
@@ -468,6 +432,7 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
         0x02 => BorkTxData {
             bork_type: BorkType::SetAvatar,
@@ -480,6 +445,7 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
         0x03 => BorkTxData {
             bork_type: BorkType::Bork,
@@ -496,6 +462,7 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
         0x04 => BorkTxData {
             bork_type: BorkType::Comment,
@@ -512,6 +479,7 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
         0x05 => BorkTxData {
             bork_type: BorkType::Rebork,
@@ -528,6 +496,7 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
         0x06 => BorkTxData {
             bork_type: BorkType::Extension,
@@ -544,20 +513,9 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
         0x07 => BorkTxData {
-            bork_type: BorkType::Delete,
-            recipient_address: None,
-            mentions: Vec::new(),
-            nonce: None,
-            position: None,
-            reference_id: Some(hex::encode(data.var_next()?)),
-            content: None,
-            sender_address: from,
-            time,
-            txid,
-        },
-        0x08 => BorkTxData {
             bork_type: BorkType::Like,
             recipient_address: Some(out_addrs.next()?.to_owned()),
             mentions: Vec::new(),
@@ -568,20 +526,9 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
-        0x09 => BorkTxData {
-            bork_type: BorkType::Unlike,
-            recipient_address: None,
-            mentions: Vec::new(),
-            nonce: None,
-            position: None,
-            reference_id: Some(hex::encode(data.next_n(32)?)),
-            content: None,
-            sender_address: from,
-            time,
-            txid,
-        },
-        0x0A => BorkTxData {
+        0x08 => BorkTxData {
             bork_type: BorkType::Flag,
             recipient_address: None,
             mentions: Vec::new(),
@@ -592,20 +539,9 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
-        0x0B => BorkTxData {
-            bork_type: BorkType::Unflag,
-            recipient_address: None,
-            mentions: Vec::new(),
-            nonce: None,
-            position: None,
-            reference_id: Some(hex::encode(data.next_n(32)?)),
-            content: None,
-            sender_address: from,
-            time,
-            txid,
-        },
-        0x0C => BorkTxData {
+        0x09 => BorkTxData {
             bork_type: BorkType::Follow,
             recipient_address: None,
             mentions: Vec::new(),
@@ -616,20 +552,9 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
-        0x0D => BorkTxData {
-            bork_type: BorkType::Unfollow,
-            recipient_address: None,
-            mentions: Vec::new(),
-            nonce: None,
-            position: None,
-            reference_id: None,
-            content: Some(pubkey_hash_to_addr(data.next_n(20)?, network)),
-            sender_address: from,
-            time,
-            txid,
-        },
-        0x0E => BorkTxData {
+        0x0A => BorkTxData {
             bork_type: BorkType::Block,
             recipient_address: None,
             mentions: Vec::new(),
@@ -640,21 +565,29 @@ pub fn decode<'a>(
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
-        0x0F => BorkTxData {
-            bork_type: BorkType::Unblock,
+        0x0B => BorkTxData {
+            bork_type: BorkType::Delete,
             recipient_address: None,
             mentions: Vec::new(),
             nonce: None,
             position: None,
-            reference_id: None,
-            content: Some(pubkey_hash_to_addr(data.next_n(20)?, network)),
+            reference_id: Some(hex::encode(data.var_next()?)),
+            content: None,
             sender_address: from,
             time,
             txid,
+            tags: Vec::new(),
         },
         _ => bail!("invalid message type"),
-    })
+    };
+    res.tags = res
+        .content
+        .as_ref()
+        .map(|s| get_tags(s.as_str()))
+        .unwrap_or_default();
+    Ok(res)
 }
 
 pub fn parse_tx<'a>(

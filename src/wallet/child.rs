@@ -68,7 +68,7 @@ impl ChildWallet {
     }
 
     pub fn nonce(&mut self) -> u8 {
-        self.nonce += 1;
+        self.nonce = self.nonce.wrapping_add(1);
         self.nonce
     }
 
