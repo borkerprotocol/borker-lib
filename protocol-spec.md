@@ -71,4 +71,6 @@ Blocking a user prevents them from viewing your profile and associated info, as 
 
 `Version (2 bytes)` `0B` `Ref (VarString 2-33 bytes)`
 
-Deletes a previous bork, referred to by the most recent non-deleted bork from the same address with a txid with the same prefix as the provided `Ref` string. You can also use this type to Unlike, Unflag, Unfollow, and Unblock. This type has no effect previous borks of type Nickname, Biography, Avatar, or Delete
+Deletes a previous bork, referred to by the most recent non-deleted bork from the same address with a txid with the same prefix as the provided `Ref` string. Use use this bork type to Unlike, Unflag, Unfollow, and Unblock. Delete type has no effect on previous borks of type Nickname, Biography, Avatar, or Delete.
+
+*Delete only removes borks from borker-server. The original bork still exists on the underlying blockchain and could therefore be recovered.*
