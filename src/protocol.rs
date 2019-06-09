@@ -668,10 +668,10 @@ pub fn parse_tx<'a>(
             };
         }
     }
-    for (idx, i) in tx.input.into_iter().enumerate() {
+    for i in tx.input.into_iter() {
         spent.push(UtxoId {
             txid: format!("{:x}", i.previous_output.txid),
-            position: idx as u32,
+            position: i.previous_output.vout,
         });
     }
 
