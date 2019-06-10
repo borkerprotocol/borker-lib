@@ -689,6 +689,7 @@ pub fn parse_tx<'a>(
                 data,
                 created
                     .iter()
+                    .rev()
                     .map(|c| c.address.as_str())
                     .filter(|a| {
                         if a == &from.as_str() && !change_found {
@@ -698,6 +699,7 @@ pub fn parse_tx<'a>(
                             true
                         }
                     })
+                    .rev()
                     .collect::<Vec<&str>>()
                     .as_slice(),
                 txid,
