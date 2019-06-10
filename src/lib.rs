@@ -216,13 +216,11 @@ impl JsChildWallet {
             .into_iter()
             .collect::<Vec<Output>>();
         outputs.extend(js_try!(mentions.into_serde::<Vec<Output>>()));
-        log(&format!("{:?}", outputs));
 
         let op_rets = js_try!(encode(
             js_try!(NewBork::try_from(js_try!(data.into_serde::<NewBorkData>()))),
             self.inner.nonce(),
         ));
-        log(&format!("{:?}", op_rets));
         let mut txs = vec![];
         let mut prev_tx: Option<Vec<u8>> = None;
         let mut o = outputs.iter().map(|o| o.as_tup()).collect::<Vec<_>>();
