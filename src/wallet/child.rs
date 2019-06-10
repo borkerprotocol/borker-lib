@@ -12,6 +12,7 @@ use ripemd160::Ripemd160;
 use secp256k1::curve::Scalar;
 use secp256k1::{PublicKey, SecretKey};
 use sha2::Sha256;
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct ChildWallet {
@@ -268,7 +269,7 @@ impl ChildWallet {
         let inputs = inputs
             .into_iter()
             .map(|i| Transaction::consensus_decode(&mut Cursor::new(i)))
-            .collect::<Result<Vec<_>, _>>()?
+            .collect::<Result<HashSet<_>, _>>()?
             .into_iter()
             .flat_map(|tx| {
                 tx.output

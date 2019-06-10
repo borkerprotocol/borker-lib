@@ -682,6 +682,7 @@ pub fn parse_tx<'a>(
         });
     }
 
+    let mut change_found = false;
     let bork = op_ret.and_then(|data| {
         from.and_then(|from| {
             decode(
@@ -689,7 +690,14 @@ pub fn parse_tx<'a>(
                 created
                     .iter()
                     .map(|c| c.address.as_str())
-                    .filter(|a| a != &from.as_str())
+                    .filter(|a| {
+                        if a == &from.as_str() && !change_found {
+                            change_found = true;
+                            false
+                        } else {
+                            true
+                        }
+                    })
                     .collect::<Vec<&str>>()
                     .as_slice(),
                 txid,
