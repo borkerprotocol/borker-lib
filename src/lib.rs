@@ -48,7 +48,7 @@ impl Output {
 #[allow(non_snake_case)]
 pub fn processBlock(
     block: String,
-    block_height: u64,
+    block_height: f64,
     network: Network,
 ) -> Result<JsValue, JsValue> {
     use bitcoin::consensus::encode::Decodable;
@@ -89,7 +89,7 @@ pub fn processBlock(
         let (bork, mut spent, mut created) = protocol::parse_tx(
             js_try!(Decodable::consensus_decode(&mut cur)),
             &timestamp,
-            block_height,
+            block_height as u64,
             network,
         );
         if let Some(bork) = bork {
@@ -201,7 +201,7 @@ impl JsChildWallet {
         inputs: JsValue,
         recipient: JsValue,
         mentions: JsValue,
-        fee: u64,
+        fee: f64,
         network: Network,
     ) -> Result<JsValue, JsValue> {
         use protocol::*;
@@ -232,7 +232,7 @@ impl JsChildWallet {
                 }
                 .as_slice(),
                 &o,
-                fee,
+                fee as u64,
                 Some(op_ret.as_slice()),
                 network,
             ));
@@ -253,8 +253,8 @@ impl JsChildWallet {
         &self,
         inputs: JsValue,
         destination: String,
-        amount: u64,
-        fee: u64,
+        amount: f64,
+        fee: f64,
         network: Network,
     ) -> Result<String, JsValue> {
         let inputs = js_try!(inputs.into_serde::<Vec<String>>());
@@ -265,8 +265,8 @@ impl JsChildWallet {
 
         let signed = js_try!(self.inner.construct_signed(
             &inputs,
-            &[(destination.as_str(), amount)],
-            fee,
+            &[(destination.as_str(), amount as u64)],
+            fee as u64,
             None,
             network
         ));

@@ -1,5 +1,5 @@
 /* tslint:disable */
-export function processBlock(block: string, blockHeight: bigint, network: Network): BlockData;
+export function processBlock(block: string, blockHeight: number, network: Network): BlockData;
 
 export enum BorkType {
   SetName = 'set_name',
@@ -98,15 +98,15 @@ export class JsChildWallet {
     inputs: string[],
     recipient: Output | null,
     mentions: Output[],
-    fee: bigint,
+    fee: number,
     network: Network
   ): string[];
 
   constructSigned(
     inputs: string[],
     destination: string,
-    amount: bigint,
-    fee: bigint,
+    amount: number,
+    fee: number,
     network: Network,
   ): string;
 
