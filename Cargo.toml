@@ -1,6 +1,6 @@
 [package]
 name = "borker-rs"
-version = "0.1.26"
+version = "0.1.27"
 authors = ["Aiden McClelland <gagglehoof@gmail.com>"]
 edition = "2018"
 

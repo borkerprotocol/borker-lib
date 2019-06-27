@@ -24,14 +24,6 @@ extern "C" {
 
 pub use self::wallet::{ChildWallet, Wallet};
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BlockData<'a> {
-    borker_txs: Vec<protocol::BorkTxData<'a>>,
-    spent: Vec<Vec<protocol::UtxoId>>,
-    created: Vec<Vec<protocol::NewUtxo>>,
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Output {
@@ -78,45 +70,19 @@ pub fn processBlock(
         chrono::NaiveDateTime::from_timestamp(block_header.time as i64, 0),
         chrono::Utc,
     );
-    let mut block_data = BlockData {
-        borker_txs: Vec::new(),
-        spent: Vec::new(),
-        created: Vec::new(),
-    };
-    let mut spent_inner = Vec::new();
-    let mut created_inner = Vec::new();
+    let mut borker_txs = Vec::new();
     for _ in 0..count.0 {
-        let (bork, mut spent, mut created) = protocol::parse_tx(
+        let bork = protocol::parse_tx(
             js_try!(Decodable::consensus_decode(&mut cur)),
             &timestamp,
             block_height as u64,
             network,
         );
         if let Some(bork) = bork {
-            block_data.borker_txs.push(bork);
+            borker_txs.push(bork);
         }
-        while spent_inner.len() + spent.len() >= 100 {
-            let at = spent_inner.len() + spent.len() - 100;
-            spent_inner.extend(spent.split_off(at));
-            block_data.spent.push(spent_inner);
-            spent_inner = Vec::new();
-        }
-        spent_inner.extend(spent);
-        while created_inner.len() + created.len() >= 100 {
-            let at = created_inner.len() + created.len() - 100;
-            created_inner.extend(created.split_off(at));
-            block_data.created.push(created_inner);
-            created_inner = Vec::new();
-        }
-        created_inner.extend(created);
     }
-    if spent_inner.len() > 0 {
-        block_data.spent.push(spent_inner);
-    }
-    if created_inner.len() > 0 {
-        block_data.created.push(created_inner);
-    }
-    Ok(js_try!(JsValue::from_serde(&block_data)))
+    Ok(js_try!(JsValue::from_serde(&borker_txs)))
 }
 
 // JS Wrappers

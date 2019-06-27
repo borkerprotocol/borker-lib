@@ -603,7 +603,7 @@ pub fn parse_tx<'a>(
     time: &'a DateTime<Utc>,
     block_height: u64,
     network: Network,
-) -> (Option<BorkTxData<'a>>, Vec<UtxoId>, Vec<NewUtxo>) {
+) -> Option<BorkTxData<'a>> {
     use bitcoin::consensus::Encodable;
 
     let mut tx_data: Vec<u8> = Vec::new();
@@ -653,7 +653,6 @@ pub fn parse_tx<'a>(
     let tx_hex = hex::encode(tx_data);
     let txid = format!("{:x}", tx.txid());
     let mut op_ret = None;
-    let mut spent = Vec::new();
     let mut created = Vec::new();
     for (idx, o) in tx.output.iter().enumerate() {
         if o.script_pubkey.is_p2pkh() {
@@ -674,12 +673,6 @@ pub fn parse_tx<'a>(
                 _ => op_ret = b.get(2..),
             };
         }
-    }
-    for i in tx.input.into_iter() {
-        spent.push(UtxoId {
-            txid: format!("{:x}", i.previous_output.txid),
-            position: i.previous_output.vout,
-        });
     }
 
     let mut change_found = false;
@@ -712,5 +705,5 @@ pub fn parse_tx<'a>(
     });
 
 
-    (bork, spent, created)
+    bork
 }

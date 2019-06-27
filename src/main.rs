@@ -11,10 +11,10 @@ macro_rules! map_str {
 fn main() -> Result<(), failure::Error> {
     let cmd: Vec<String> = args().collect();
     let name = cmd.get(0).unwrap();
-    match map_str!(cmd.get(1)) {
+    /*match map_str!(cmd.get(1)) {
         Some("new_wallet") => {
             let ent = lib::Wallet::new();
-            println!("{}", ent.words().join(" "))
+            println!("{}", ent.words().join(" "));
         }
         Some("restore_wallet") => match cmd.get(2..14) {
             Some(a) => {
@@ -25,7 +25,7 @@ fn main() -> Result<(), failure::Error> {
         Some("wallet_from_bytes") => match cmd.get(2) {
             Some(a) => {
                 let ent = lib::Wallet::from_bytes(&hex::decode(a)?)?;
-                println!("{}", ent.words().join(" "))
+                println!("{}", ent.words().join(" "));
             }
             None => eprintln!("usage: {} wallet_from_bytes <hexdata>", name),
         Some("parse_block") => {
@@ -37,6 +37,6 @@ fn main() -> Result<(), failure::Error> {
         }
         None | Some("help") => eprintln!("usage: {} <command> [args...]", name),
         Some(a) => eprintln!("'{}' is not a valid command", a),
-    }
+    };*/
     Ok(())
 }
