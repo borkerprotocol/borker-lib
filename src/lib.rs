@@ -40,7 +40,6 @@ impl Output {
 #[allow(non_snake_case)]
 pub fn processBlock(
     block: String,
-    block_height: f64,
     network: Network,
 ) -> Result<JsValue, JsValue> {
     use bitcoin::consensus::encode::Decodable;
@@ -75,7 +74,6 @@ pub fn processBlock(
         let bork = protocol::parse_tx(
             js_try!(Decodable::consensus_decode(&mut cur)),
             &timestamp,
-            block_height as u64,
             network,
         );
         if let Some(bork) = bork {

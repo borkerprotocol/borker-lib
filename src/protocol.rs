@@ -14,20 +14,12 @@ use std::collections::HashSet;
 pub const MAGIC: [u8; 2] = [0xD0, 0x6E];
 
 #[derive(Debug, Serialize)]
-pub struct UtxoId {
-    txid: String,
-    position: u32,
-}
-
-#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NewUtxo {
-    block_height: u64,
     txid: String,
     position: u32,
     address: String,
     value: u64,
-    raw: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -601,7 +593,6 @@ pub fn decode<'a>(
 pub fn parse_tx<'a>(
     tx: bitcoin::Transaction,
     time: &'a DateTime<Utc>,
-    block_height: u64,
     network: Network,
 ) -> Option<BorkTxData<'a>> {
     use bitcoin::consensus::Encodable;
@@ -650,19 +641,16 @@ pub fn parse_tx<'a>(
             Some(addr)
         })
     };
-    let tx_hex = hex::encode(tx_data);
     let txid = format!("{:x}", tx.txid());
     let mut op_ret = None;
     let mut created = Vec::new();
     for (idx, o) in tx.output.iter().enumerate() {
         if o.script_pubkey.is_p2pkh() {
             created.push(NewUtxo {
-                block_height,
                 txid: txid.clone(),
                 position: idx as u32,
                 address: crate::wallet::script_to_addr(&o.script_pubkey, network).unwrap(),
                 value: o.value,
-                raw: tx_hex.clone(),
             });
         } else if o.script_pubkey.is_op_return() {
             let b = o.script_pubkey.as_bytes();
