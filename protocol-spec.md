@@ -25,7 +25,7 @@ Set your biography. Cannot be extended.
 
 Set your avatar by providing a link to the image. Cannot be extended.
 
-### Post
+### Standard Bork
 `Version (2 bytes)` `03` `Nonce (1 byte)` `<message> (0-76 bytes)`
 
 Bork it loud.
