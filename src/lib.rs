@@ -38,10 +38,7 @@ impl Output {
 
 #[wasm_bindgen]
 #[allow(non_snake_case)]
-pub fn processBlock(
-    block: String,
-    network: Network,
-) -> Result<JsValue, JsValue> {
+pub fn processBlock(block: String, network: Network) -> Result<JsValue, JsValue> {
     use bitcoin::consensus::encode::Decodable;
 
     let block = js_try!(hex::decode(&block));
