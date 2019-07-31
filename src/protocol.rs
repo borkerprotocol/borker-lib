@@ -375,7 +375,7 @@ pub fn get_tags(body: &str) -> Vec<String> {
             continue;
         }
         if in_tag {
-            if c == ' ' || c == '\t' || c == '\n' {
+            if !c.is_alphanumeric() && c != '_' {
                 if tag.len() > 0 {
                     res.insert(tag);
                     tag = String::new();
