@@ -108,7 +108,7 @@ impl JsWallet {
     pub fn words(&self) -> Vec<JsValue> {
         self.inner
             .words()
-            .into_iter()
+            .iter()
             .map(|a| JsValue::from_serde(a).unwrap())
             .collect()
     }
@@ -164,6 +164,7 @@ impl JsChildWallet {
         mentions: JsValue,
         fee: f64,
         network: Network,
+        version: Option<u16>,
     ) -> Result<JsValue, JsValue> {
         use protocol::*;
 
@@ -181,6 +182,7 @@ impl JsChildWallet {
         let op_rets = js_try!(encode(
             js_try!(NewBork::try_from(js_try!(data.into_serde::<NewBorkData>()))),
             self.inner.nonce(),
+            version,
         ));
         let mut txs = vec![];
         let mut prev_tx: Option<Vec<u8>> = None;
@@ -233,5 +235,4 @@ impl JsChildWallet {
         ));
         Ok(hex::encode(signed))
     }
-
 }

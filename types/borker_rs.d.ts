@@ -79,7 +79,8 @@ export class JsChildWallet {
     recipient: Output | null,
     mentions: Output[],
     fee: number,
-    network: Network
+    network: Network,
+    version?: number
   ): string[];
 
   constructSigned(

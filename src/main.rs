@@ -22,10 +22,13 @@ fn main() -> Result<(), failure::Error> {
     let cmd: Vec<String> = args().collect();
     let name = cmd.get(0).unwrap();
     let int = Arc::new(RwLock::new(false));
-    let int_c = int.clone();
-    ctrlc::set_handler(move || {
-        *int_c.write().unwrap() = true;
-    })?;
+    #[cfg(feature = "ctrlc")]
+    {
+        let int_c = int.clone();
+        ctrlc::set_handler(move || {
+            *int_c.write().unwrap() = true;
+        })?;
+    }
     match cmd.get(1).as_ref().map(|s| s.as_str()) {
         Some("new_wallet") => {
             let ent = lib::Wallet::new();

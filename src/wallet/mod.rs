@@ -1,7 +1,6 @@
 mod child;
 mod consts;
 
-
 pub use self::child::ChildWallet;
 use crate::Network;
 use base58::ToBase58;
@@ -20,11 +19,10 @@ pub struct Wallet {
 }
 impl Wallet {
     pub fn new() -> Self {
-        use rand::rngs::EntropyRng;
         use rand::RngCore;
 
         let mut res: [u8; 16] = [0; 16];
-        EntropyRng::new().fill_bytes(&mut res);
+        rand::thread_rng().fill_bytes(&mut res);
         Self::from_entropy(res)
     }
 
@@ -66,12 +64,12 @@ impl Wallet {
             bits_taken = 3 + offset;
             bytes_taken = bytes_taken + 1;
             *idx = if offset <= 5 {
-                (((b1 & mask_16!(8 - offset)) << bits_taken) + (b2 >> (8 - bits_taken)))
+                ((b1 & mask_16!(8 - offset)) << bits_taken) + (b2 >> (8 - bits_taken))
             } else if 6 <= offset && offset < 8 {
                 let b3: u16 = *self.entropy().get(bytes_taken + 1).unwrap_or(&shasum) as u16;
-                (((b1 & mask_16!(8 - offset)) << bits_taken)
+                ((b1 & mask_16!(8 - offset)) << bits_taken)
                     + (b2 << (bits_taken - 8))
-                    + (b3 >> (16 - bits_taken)))
+                    + (b3 >> (16 - bits_taken))
             } else {
                 unreachable!()
             };
@@ -112,7 +110,7 @@ impl Wallet {
 
     pub fn words(&self) -> [&'static str; 12] {
         let mut res = [""; 12];
-        for (word, idx) in res.iter_mut().zip(self.idxs().into_iter()) {
+        for (word, idx) in res.iter_mut().zip(self.idxs().iter()) {
             *word = consts::DICT[*idx as usize]
         }
         res

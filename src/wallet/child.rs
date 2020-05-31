@@ -1,6 +1,4 @@
-
 use super::addr_to_script;
-
 use super::pubkey_hash_to_addr;
 use super::HmacSha512;
 use crate::big_array::BigArray;
@@ -26,7 +24,7 @@ pub struct ChildWallet {
 impl ChildWallet {
     pub fn new(seed: [u8; 64]) -> Self {
         use rand::Rng;
-        let mut rng = rand::rngs::EntropyRng::new();
+        let mut rng = rand::thread_rng();
         let mut res = ChildWallet {
             seed,
             mpriv: None,
@@ -337,9 +335,7 @@ impl ChildWallet {
             .enumerate()
             .map(|(i, vin)| -> Result<_, Error> {
                 let sighash = tx.signature_hash(i, &script, 0x01).into_inner();
-                let sig = secp256k1::sign(&secp256k1::Message::parse(&sighash), self.mpriv())
-                    .map_err(|e| format_err!("{:?}", e))?
-                    .0;
+                let (sig, _) = secp256k1::sign(&secp256k1::Message::parse(&sighash), self.mpriv());
                 let pubkey = self.mpub().serialize_compressed();
                 let sig_der = sig.serialize_der();
                 let script_sig = bitcoin::Script::from(

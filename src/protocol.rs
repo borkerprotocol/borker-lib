@@ -1,4 +1,3 @@
-
 use crate::Network;
 use failure::Error;
 use std::io::Write;
@@ -212,11 +211,11 @@ impl std::convert::TryFrom<NewBorkData> for NewBork {
     }
 }
 
-pub fn encode(bork: NewBork, nonce: u8) -> Result<Vec<Vec<u8>>, Error> {
+pub fn encode(bork: NewBork, nonce: u8, version: Option<u16>) -> Result<Vec<Vec<u8>>, Error> {
     let mut buf_vec: Vec<Vec<u8>> = Vec::new();
     let mut buf: Vec<u8> = Vec::new();
-    buf.push(MAGIC[0]);
-    buf.push(MAGIC[1]);
+    let magic = version.map(u16::to_be_bytes).unwrap_or(MAGIC);
+    buf.extend_from_slice(&magic);
     let content: Option<Vec<u8>> = match bork {
         NewBork::SetName { content } => {
             buf.push(0x00);
@@ -245,7 +244,7 @@ pub fn encode(bork: NewBork, nonce: u8) -> Result<Vec<Vec<u8>>, Error> {
             buf.push(0x04);
             buf.push(nonce);
             buf.push(reference_id.len() as u8);
-            buf.extend(reference_id);
+            buf.extend_from_slice(&reference_id);
             Some(content.into_bytes())
         }
         NewBork::Rebork {
@@ -255,34 +254,34 @@ pub fn encode(bork: NewBork, nonce: u8) -> Result<Vec<Vec<u8>>, Error> {
             buf.push(0x05);
             buf.push(nonce);
             buf.push(reference_id.len() as u8);
-            buf.extend(reference_id);
+            buf.extend_from_slice(&reference_id);
             Some(content.into_bytes())
         }
         NewBork::Like { reference_id } => {
             buf.push(0x07);
             buf.push(reference_id.len() as u8);
-            buf.extend(reference_id);
+            buf.extend_from_slice(&reference_id);
             None
         }
         NewBork::Flag { txid } => {
             buf.push(0x08);
-            buf.extend(txid);
+            buf.extend_from_slice(&txid);
             None
         }
         NewBork::Follow { address } => {
             buf.push(0x09);
-            buf.extend(address);
+            buf.extend_from_slice(&address);
             None
         }
         NewBork::Block { address } => {
             buf.push(0x0A);
-            buf.extend(address);
+            buf.extend_from_slice(&address);
             None
         }
         NewBork::Delete { reference_id } => {
             buf.push(0x0B);
             buf.push(reference_id.len() as u8);
-            buf.extend(reference_id);
+            buf.extend_from_slice(&reference_id);
             None
         }
     };
@@ -292,8 +291,7 @@ pub fn encode(bork: NewBork, nonce: u8) -> Result<Vec<Vec<u8>>, Error> {
         for c in content[remaining..].chunks(75) {
             buf_vec.push(buf);
             buf = Vec::new();
-            buf.push(MAGIC[0]);
-            buf.push(MAGIC[1]);
+            buf.extend_from_slice(&magic);
             buf.push(0x06);
             buf.push(nonce);
             buf.push(buf_vec.len() as u8);
@@ -342,7 +340,6 @@ where
     }
 }
 impl<'a> Cur<'a, u8> {
-
     pub fn var_peek(&self) -> Result<&'a [u8], Error> {
         let len = *self
             .0
@@ -691,7 +688,6 @@ pub fn parse_tx<'a>(
             .ok()
         })
     });
-
 
     bork
 }
